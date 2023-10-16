@@ -1,0 +1,19 @@
+{
+    "name": "apirone/prestashop",
+    "description": "Prestashop payment gateway",
+    "require": {
+        "apirone/apirone-sdk-php": "^1.0@RC"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "alex",
+            "email": "alex.zaytseff@gmail.com"
+        }
+    ],
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "RC"
+}
