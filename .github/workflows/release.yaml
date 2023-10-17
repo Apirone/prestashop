@@ -16,6 +16,10 @@ jobs:
       - name: Install composer dependencies
         run: composer install --no-dev --optimize-autoloader --prefer-dist
 
+      - name: Echo TEST
+        run: |
+          echo "Echo test without commit" && ls -alh ./
+
       - name: Clean-up project
         uses: PrestaShopCorp/github-action-clean-before-deploy@v1.0
 
