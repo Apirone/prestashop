@@ -14,14 +14,14 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install composer dependencies
-        run: composer install --no-dev --optimize-autoloader --prefer-dist
+        run: composer install --no-dev --prefer-dist
 
-      - name: Echo TEST
-        run: |
-          echo "Echo test without commit" && ls -alh ./
+      # - name: Echo TEST
+      #   run: |
+      #     echo "Echo test without commit" && ls -alh ./
 
-      - name: Clean-up project
-        uses: PrestaShopCorp/github-action-clean-before-deploy@v1.0
+      # - name: Clean-up project
+      #   uses: PrestaShopCorp/github-action-clean-before-deploy@v1.0
 
       - name: Create & upload artifact
         uses: actions/upload-artifact@v1
