@@ -1,0 +1,31 @@
+name: 'Build and release'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install composer dependencies
+        run: composer install --no-dev -o
+
+      - name: Clean-up project
+        uses: PrestaShopCorp/github-action-clean-before-deploy@v1.0
+
+      - name: Create & upload artifact
+        uses: actions/upload-artifact@v1
+
+        with:
+          name: ${{ github.event.repository.name }}
+          path: ../
+
+
+        
+  
