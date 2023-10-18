@@ -35,6 +35,8 @@ copy-vendor:
 	cp -rf ./vendor/apirone/apirone-sdk-php/README.md ./apirone/vendor/apirone/apirone-sdk-php/README.md
 
 build: clean copy copy-vendor
+
+build-zip: clean copy copy-vendor
 	zip -r apirone.zip ./apirone
 	rm -rf $(PWD)/apirone
 

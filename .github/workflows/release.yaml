@@ -24,8 +24,8 @@ jobs:
 
         with:
           # name: ${{ github.event.repository.name }}
-          name: apirone.zip
-          path: ../
+          name: apirone
+          path: apirone
 
 
         
