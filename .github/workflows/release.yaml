@@ -16,14 +16,15 @@ jobs:
       - name: Install composer dependencies
         run: composer install --no-dev --prefer-dist
 
-      - name: Clean-up project
-        uses: PrestaShopCorp/github-action-clean-before-deploy@v1.0
+      - name: Build zip
+        run: make build
 
-      - name: Create & upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v1
 
         with:
-          name: ${{ github.event.repository.name }}
+          # name: ${{ github.event.repository.name }}
+          name: apirone.zip
           path: ../
 
 
