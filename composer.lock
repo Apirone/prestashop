@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "apirone/apirone-api-php",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Apirone/apirone-api-php.git",
-                "reference": "b46c3cabe5c9d4e1585157b9914e3f71d6d5fb0c"
+                "reference": "619f56ccb055c5700e2790dc01d10ebba18f9442"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Apirone/apirone-api-php/zipball/b46c3cabe5c9d4e1585157b9914e3f71d6d5fb0c",
-                "reference": "b46c3cabe5c9d4e1585157b9914e3f71d6d5fb0c",
+                "url": "https://api.github.com/repos/Apirone/apirone-api-php/zipball/619f56ccb055c5700e2790dc01d10ebba18f9442",
+                "reference": "619f56ccb055c5700e2790dc01d10ebba18f9442",
                 "shasum": ""
             },
             "require": {
@@ -42,6 +42,7 @@
                 }
             ],
             "description": "Apirone API Client",
+            "homepage": "https://github.com/Apirone/apirone-api-php",
             "keywords": [
                 "Apirone",
                 "DOGE",
@@ -55,9 +56,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Apirone/apirone-api-php/issues",
-                "source": "https://github.com/Apirone/apirone-api-php/tree/v1.0.0"
+                "source": "https://github.com/Apirone/apirone-api-php/tree/v1.0.1"
             },
-            "time": "2023-08-18T09:55:18+00:00"
+            "time": "2023-10-05T08:58:52+00:00"
         },
         {
             "name": "apirone/apirone-sdk-php",

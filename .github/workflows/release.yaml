@@ -1,0 +1,32 @@
+name: 'Build and release'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install composer dependencies
+        run: composer install --no-dev --prefer-dist
+
+      - name: Build zip
+        run: make build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+
+        with:
+          # name: ${{ github.event.repository.name }}
+          name: apirone
+          path: apirone
+
+
+        
+  
