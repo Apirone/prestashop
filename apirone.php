@@ -228,12 +228,6 @@ class Apirone extends PaymentModule
                         'hint' => $this->l('If you want to add/substract percent to/from the payment amount, use the following  price adjustment factor multiplied by the amount. For example: 100% * 0.99 = 99% | 100% * 1.01 = 101%'),
                     ],
                     [
-                        'type' => 'text',
-                        'name' => 'backlink',
-                        'label' => $this->l('Back to store ???'),
-                        'hint' => $this->l('Enter a valid URL for the "Back to store" link on the invoice page. If empty the home page is used.'),
-                    ],
-                    [
                         'type' => 'switch',
                         'name' => 'logo',
                         'label' => $this->l('Apirone Logo'),
