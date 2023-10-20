@@ -24,7 +24,6 @@ class Apirone extends PaymentModule
     const HOOKS = [
         'header',
         'displayBackOfficeHeader',
-        'payment',
         'paymentOptions',
         'displayAdminCustomers',
         'displayPayment',
