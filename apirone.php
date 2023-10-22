@@ -17,23 +17,11 @@ require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
+use Apirone\SDK\Service\InvoiceDb;
+use Apirone\SDK\Service\InvoiceQuery;
 use Apirone\SDK\Service\Utils;
-use PrestaShop\PrestaShop\Core\Action\ActionsBarButton;
 class Apirone extends PaymentModule
 {
-    const HOOKS = [
-        'header',
-        'displayBackOfficeHeader',
-        'paymentOptions',
-        'displayAdminCustomers',
-        'displayPayment',
-        'displayOrderConfirmation',
-        'displayPaymentReturn',
-        'displayAdminOrderTabLink',
-        'displayAdminOrderTabContent',
-    ];
-
-    public $config_form = false;
 
     public ?Settings $settings = null;
 
@@ -63,64 +51,42 @@ class Apirone extends PaymentModule
         Invoice::settings($this->settings);
     }
 
-    public function hookDisplayAdminOrderSide($params)
-    {
-        return 'displayAdminOrderSide';
-    }
-
-
-    public function hookDisplayAdminOrderTabLink($params)
-    {
-        $return = '<li class="nav-item">
-            <a href="#paypal" class="nav-link" data-toggle="tab" role="tab">
-                <i class="material-icons">list</i>
-                Order apirone invoices
-            </a>
-        </li>';
-
-
-
-        return $return;
-    }
-
-    public function hookDisplayAdminOrderTabContent($params)
-    {
-        $order = new Order($params['id_order']);
-        $list = [];
-        $invoices = Invoice::getOrderInvoices($params['id_order']);
-        foreach ($invoices as $invoice) {
-            $list[] = $invoice->details->invoice . ' - ' . $invoice->status;
-        }
-
-        // return '<pre>' . print_r($list, true) . '</pre>';
-        return '<pre>' . print_r($order->getOrderPayments(), true) . '</pre>';
-    }
-
     public function install()
     {
+        $this->warning = null;
+
+        // Check cURL extention
         if (extension_loaded('curl') == false) {
-            $this->_errors[] = $this->l('You have to enable the cURL extension on your server to install this module');
-
-            return false;
+            $this->warning = $this->l('You have to enable the cURL extension on your server to install this module.');
         }
-        
-        include(dirname(__FILE__).'/sql/install.php');
 
-        //TODO: Add all countries for payments ???
-        return parent::install() &&
-            $this->registerHook(static::HOOKS) &&
-            $this->installApironeStates() &&
-            $this->registerHook('paymentOptions');
+        // Register hooks
+        if (is_null($this->warning)
+            && $this->registerHooks()) {
+
+            $this->warning = $this->l('An error occurred while adding hooks.');
+        }
+
+        // Add datatable
+        if (is_null($this->warning) && !$this->createApironeTable()) {
+            $this->warning = $this->l('An error occurred while creating the data table.');
+        }
+
+        // Add orderStates
+        if (is_null($this->warning) && !$this->addApironeOrderStates()) {
+            $this->warning = $this->l('An error occurred while adding apirone order states.');
+        }
+
+        return is_null($this->warning) && parent::install();
     }
 
     public function uninstall()
     {
         Configuration::deleteByName('APIRONE_SETTINGS');
-
-        include(dirname(__FILE__).'/sql/uninstall.php');
-
-        return parent::uninstall()
-            && $this->uninstallApironeStates();
+        Configuration::deleteByName('APIRONE_OC_PAYMENT_ACCEPTED');
+        Configuration::deleteByName('APIRONE_OC_PAYMENT_COMPLETED');
+        
+        return parent::uninstall();
     }
 
     /**
@@ -394,26 +360,6 @@ class Apirone extends PaymentModule
     }
 
     /**
-    * Add the CSS & JavaScript files you want to be loaded in the BO.
-    */
-    public function hookDisplayBackOfficeHeader()
-    {
-        if (Tools::getValue('configure') == $this->name) {
-            $this->context->controller->addJS($this->_path.'views/js/back.js');
-            $this->context->controller->addCSS($this->_path.'views/css/back.css');
-        }
-    }
-
-    /**
-     * Add the CSS & JavaScript files you want to be added on the FO.
-     */
-    public function hookHeader()
-    {
-        $this->context->controller->addJS($this->_path.'/views/js/front.js');
-        $this->context->controller->addCSS($this->_path.'/views/css/front.css');
-    }
-
-    /**
      * Return payment options available for PS 1.7+
      *
      * @param array Hook parameters
@@ -457,6 +403,27 @@ class Apirone extends PaymentModule
 
         return [$option];
     }
+
+    public function hookDisplayAdminOrderTabLink($params)
+    {
+        // TODO: Move to template
+        $return = '<li class="nav-item"><a href="#paypal" class="nav-link" data-toggle="tab" role="tab"><i class="material-icons">list</i>Order apirone invoices</a></li>';
+
+        return $return;
+    }
+
+    public function hookDisplayAdminOrderTabContent($params)
+    {
+        $order = new Order($params['id_order']);
+        $list = [];
+        $invoices = Invoice::getOrderInvoices($params['id_order']);
+        foreach ($invoices as $invoice) {
+            $list[] = $invoice->details->invoice . ' - ' . $invoice->status;
+        }
+
+        return '<pre>' . print_r($order->getOrderPayments(), true) . '</pre>';
+    }
+
 
     public function checkCurrency($cart)
     {
@@ -506,7 +473,8 @@ class Apirone extends PaymentModule
         return $currencies;
     }
 
-    public function getCrypto() {
+    public function getCrypto()
+    {
         $coin = Tools::getValue('coin');
 
         $cryptos = $this->getAvailableCryptos();
@@ -532,58 +500,86 @@ class Apirone extends PaymentModule
         return $settings;
     }
 
-    public function installApironeStates()
+    private function createApironeTable()
     {
-        $this->addApironeOrderState('accepted', 'Apirone payment accepted', '#ffc554');
-        $this->addApironeOrderState('confirmed', 'Apirone payment confirmed', '#6cd936', true, true, true);
+        if (!Db::getInstance()->execute(InvoiceQuery::createInvoicesTable(_DB_PREFIX_))) {
+            $this->log('error', 'Install error. Can\'t create apirone table.');
+            return false;
+        }
+
+        return true;    
     }
 
-    public function uninstallApironeStates() {
-        $OS_ACCEPTED = new OrderState(Configuration::get('APIRONE_OS_ACCEPTED'));
-        $OS_ACCEPTED->delete();
-        Configuration::deleteByName('APIRONE_OS_ACCEPTED');
+    private function registerHooks()
+    {
+        foreach ($this->getHooksList() as $hook) {
+            if (!$this->registerHook($hook)) {
+                $this->log('error', 'Install error. Failed to register "' . $hook . '" hook.');
 
-        $OS_CONFIRMED = new OrderState(Configuration::get('APIRONE_OS_CONFIRMED'));
-        $OS_CONFIRMED->delete();
-        Configuration::deleteByName('APIRONE_OS_CONFIRMED');
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    public function addApironeOrderState($key, $name, $color = false, $invoice = false, $send_email = false, $paid = false) {
-        $status = 'APIRONE_OS_' . strtoupper($key);
+    private function getHooksList()
+    {
+        return [
+            'paymentOptions',
+            'displayAdminOrderTabLink',
+            'displayAdminOrderTabContent',
+        ];
+    }
+
+    public function addApironeOrderStates()
+    {
+        try {
+            $this->createApironeOrderState('accepted');
+            $this->createApironeOrderState('completed');
+        }
+        catch(Exception $e) {
+            $this->log('error', $e->getMessage());
+            $this->warning = $e->getMessage();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function createApironeOrderState($name)
+    {
+        $status = 'APIRONE_OC_PAYMENT_' . strtoupper($name);
 
         $stateId = Configuration::get($status);
-        $order_state = ($stateId) ? new OrderState((int)$stateId) : new OrderState();
+        $orderState = ($stateId) ? new OrderState((int)$stateId) : new OrderState();
 
-        $_color = ($color) ? $color : '#cccccc';
+        // if (!Configuration::get($status)) {
+            // $orderState = new OrderState();
+            $orderState->name = [];
+            $orderState->module_name = $this->name;
+            $orderState->color = ($name == 'completed') ? '#5D8AB9' : '#AEC4DC';;
+            $orderState->hidden = false;
+            $orderState->delivery = false;
+            $orderState->logable = true;
+            $orderState->invoice = $orderState->send_email = $orderState->paid = ($name == 'completed') ? true: false ;
 
-        $order_state->name = [];
-        foreach (Language::getLanguages() as $language) {
-            $order_state->name[$language['id_lang']] = $name;
-            $order_state->template[$language['id_lang']] = 'payment';
-        }
-        $order_state->hidden = false;
-        $order_state->delivery = false;
-        $order_state->color = $_color;
-        $order_state->invoice = $invoice;
-        $order_state->send_email = $send_email;
-        $order_state->paid = $paid;
-        $order_state->logable = false;
-        $order_state->module_name = $this->name;
-
-        if ($order_state->save()) {
-            $source = _PS_MODULE_DIR_ . 'apirone/logo.png';
-            $destination = _PS_ROOT_DIR_ . '/img/os/' . (int) $order_state->id . '.gif';
-            copy($source, $destination);
-        }
-
-        if (Shop::isFeatureActive()) {
-            $shops = Shop::getShops();
-            foreach ($shops as $shop) {
-                Configuration::updateValue($status, (int) $order_state->id, false, null, (int) $shop['id_shop']);
+            foreach (Language::getLanguages() as $language) {
+                if ($orderState->send_email) {
+                    $orderState->template[$language['id_lang']] = 'payment';
+                }
+                $orderState->name[$language['id_lang']] = 'Payment ' . $name;
             }
-        } else {
-            Configuration::updateValue($status, (int) $order_state->id);
-        }
+
+            if ($orderState->save()) {
+                $source = _PS_MODULE_DIR_ . 'apirone/logo.png';
+                $destination = _PS_ROOT_DIR_ . '/img/os/' . (int) $orderState->id . '.gif';
+                copy($source, $destination);
+            }
+
+            Configuration::updateValue($status, (int) $orderState->id);
+        // }
     }
 
     public function log($level, $message, $context = [])
