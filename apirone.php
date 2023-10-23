@@ -60,16 +60,19 @@ class Apirone extends PaymentModule
             $this->warning = $this->l('You have to enable the cURL extension on your server to install this module.');
         }
 
-        // Register hooks
-        if (is_null($this->warning)
-            && $this->registerHooks()) {
+        // Install module
+        if (is_null($this->warning) && !parent::install()) {
+            $this->warning = $this->l('An error occurred during the module installation process. The module is not installed.');
+        }
 
-            $this->warning = $this->l('An error occurred while adding hooks.');
+        // Register hooks
+        if (is_null($this->warning)) {
+            $this->registerHooks();
         }
 
         // Add datatable
-        if (is_null($this->warning) && !$this->createApironeTable()) {
-            $this->warning = $this->l('An error occurred while creating the data table.');
+        if (is_null($this->warning)) {
+            $this->createApironeTable();
         }
 
         // Add orderStates
@@ -77,14 +80,16 @@ class Apirone extends PaymentModule
             $this->warning = $this->l('An error occurred while adding apirone order states.');
         }
 
-        return is_null($this->warning) && parent::install();
+        if ($this->warning !== null) {
+            $this->_errors[] = $this->warning;
+        }
+
+        return is_null($this->warning);
     }
 
     public function uninstall()
     {
         Configuration::deleteByName('APIRONE_SETTINGS');
-        Configuration::deleteByName('APIRONE_OC_PAYMENT_ACCEPTED');
-        Configuration::deleteByName('APIRONE_OC_PAYMENT_COMPLETED');
         
         return parent::uninstall();
     }
@@ -503,7 +508,8 @@ class Apirone extends PaymentModule
     private function createApironeTable()
     {
         if (!Db::getInstance()->execute(InvoiceQuery::createInvoicesTable(_DB_PREFIX_))) {
-            $this->log('error', 'Install error. Can\'t create apirone table.');
+            $this->warning = 'Can\'t create apirone table.';
+            $this->log('error', $this->warning);
             return false;
         }
 
@@ -512,12 +518,17 @@ class Apirone extends PaymentModule
 
     private function registerHooks()
     {
+        $errRedistredHooks = [];
         foreach ($this->getHooksList() as $hook) {
+            
             if (!$this->registerHook($hook)) {
-                $this->log('error', 'Install error. Failed to register "' . $hook . '" hook.');
-
-                return false;
+                $errRedistredHooks[] = $hook;
             }
+        }
+        if (!empty($errRedistredHooks)) {
+            $this->warning = 'Failed to regisrer hooks: ' . implode(', ', $errRedistredHooks);
+            $this->log('error', $this->warning);
+            return false;        
         }
 
         return true;
@@ -555,31 +566,25 @@ class Apirone extends PaymentModule
         $stateId = Configuration::get($status);
         $orderState = ($stateId) ? new OrderState((int)$stateId) : new OrderState();
 
-        // if (!Configuration::get($status)) {
-            // $orderState = new OrderState();
-            $orderState->name = [];
-            $orderState->module_name = $this->name;
-            $orderState->color = ($name == 'completed') ? '#5D8AB9' : '#AEC4DC';;
-            $orderState->hidden = false;
-            $orderState->delivery = false;
-            $orderState->logable = true;
-            $orderState->invoice = $orderState->send_email = $orderState->paid = ($name == 'completed') ? true: false ;
+        $orderState->name = [];
+        $orderState->module_name = $this->name;
+        $orderState->color = ($name == 'completed') ? '#5D8AB9' : '#AEC4DC';;
+        $orderState->hidden = false;
+        $orderState->delivery = false;
+        $orderState->logable = true;
+        $orderState->invoice = $orderState->send_email = $orderState->paid = ($name == 'completed') ? true: false ;
+        $orderState->template = ($orderState->send_email) ? 'payment' : '';
 
-            foreach (Language::getLanguages() as $language) {
-                if ($orderState->send_email) {
-                    $orderState->template[$language['id_lang']] = 'payment';
-                }
-                $orderState->name[$language['id_lang']] = 'Payment ' . $name;
-            }
+        foreach (Language::getLanguages() as $language) {
+            $orderState->name[$language['id_lang']] = 'Payment ' . $name;
+        }
+        if ($orderState->save()) {
+            $source = _PS_MODULE_DIR_ . 'apirone/logo.png';
+            $destination = _PS_ROOT_DIR_ . '/img/os/' . (int) $orderState->id . '.gif';
+            copy($source, $destination);
+        }
 
-            if ($orderState->save()) {
-                $source = _PS_MODULE_DIR_ . 'apirone/logo.png';
-                $destination = _PS_ROOT_DIR_ . '/img/os/' . (int) $orderState->id . '.gif';
-                copy($source, $destination);
-            }
-
-            Configuration::updateValue($status, (int) $orderState->id);
-        // }
+        Configuration::updateValue($status, (int) $orderState->id);
     }
 
     public function log($level, $message, $context = [])
