@@ -395,7 +395,7 @@ class Apirone extends PaymentModule
         }
 
         if (empty($coins)) {
-            $return;
+            return;
         }
 
         $action = $this->context->link->getModuleLink($this->name, 'payment', array(), true);
