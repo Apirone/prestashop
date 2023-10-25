@@ -466,8 +466,10 @@ class Apirone extends PaymentModule
 
         foreach ($this->settings->getCurrencies() as $item) {
             if ($item->getAddress() !== null && !$item->hasError()) {
-                if ($item->isTestnet() && $testCustomer == $this->context->customer->email) {
-                    $currencies[] = $item;
+                if ($item->isTestnet()) {
+                    if ($testCustomer === $this->context->customer->email) {
+                        $currencies[] = $item;
+                    }
                 }
                 else {
                     $currencies[] = $item;
