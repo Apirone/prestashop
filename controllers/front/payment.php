@@ -65,7 +65,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         if($merchant) {
             $userData->setMerchant($merchant);
         }
-        $userData->setPrice($cart_total . $currency->symbol);
+        $userData->setPrice($cart_total . ' ' . strtoupper($currency->iso_code));
 
         $invoice->userData($userData);
 

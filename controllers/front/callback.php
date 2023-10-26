@@ -17,7 +17,7 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
     {
         $this->checkCallbackData();
 
-        Invoice::callbackHandler($this->handlerWrapper());
+        Invoice::callbackHandler($this->handlerWrapper($invoice));
         exit;
     }
 
