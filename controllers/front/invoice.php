@@ -42,9 +42,6 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
         }
         $invoice = Invoice::getInvoice($id);
 
-        // order-confirmation?id_cart=10&id_module=32&id_order=8&key=eb22beefbfab99cefd18945784fcdd7b
-        Render::$idParam = 'id';
-
         // Create backlink
         if (property_exists($invoice, 'order') && $invoice->order !== 0) {
             $cart = new Cart($invoice->order);
@@ -56,12 +53,16 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
                     'id_order' => $order->id,
                     'key' => $order->secure_key,
                 ];
-                Render::$backlink = $this->context->link->getPageLink('order-confirmation', true, null, $request);
+                $backlink = $this->context->link->getPageLink('order-confirmation', true, null, $request);
             }
             else {
-                Render::$backlink = $this->context->link->getPageLink('order', true, null, ['step' => '3', ]);
+                $backlink = $this->context->link->getPageLink('order', true, null, ['step' => '3', ]);
             }
         }
+
+        // Set render params
+        Render::$idParam = 'id';
+        Render::$backlink = $backlink;
 
         return $invoice;
     }
