@@ -28,10 +28,11 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
         }
 
         $cart = new Cart($invoice->order);
+        $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
 
         // Create order
-        if (!$cart->orderExists() && in_array($invoice->status, ['paid', 'overpaid'])) {
-            $order_status = (int) Configuration::get('APIRONE_OS_ACCEPTED');
+        if (!$cart->orderExists() && in_array($invoice->status, ['paid', 'overpaid','expired'])) {
+            $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
             try {
                 $this->module->validateOrder(
                     (int) $cart->id,
@@ -46,12 +47,13 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
                 );
             }
             catch (Exception $e) {
-                $this->module->log('error', 'Order could not be validated', [$e]);
-                $this->errors[] = $this->module->l('There has been an error processing your order.');
-                $this->redirectWithNotifications($this->context->link->getPageLink('order', true, null, ['step' => '3', ]));
+                $this->module->log('error', 'Can\'t create an order.', [$e->getMessage()]);
+                $message = 'Can\'t create an order.';
+                Utils::send_json($message, 400);
             }
 
-            // TODO: Store last order status into invoce
+            $order = Order::getByCartId($cart->id);
+            $invoice->setMeta('order_status', (int) $order->getCurrentState());
             return;
         }
 
@@ -60,7 +62,11 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
             $order = Order::getByCartId($cart->id);
 
             $current_status = (int) $order->getCurrentState();
-            $new_status = (int)  Configuration::get('APIRONE_OS_CONFIRMED');
+            if ($invoice->getMeta('order_status') !== $current_status) {
+                $this->module->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
+                return;
+            }
+            $new_status = (int) Configuration::get('APIRONE_OC_PAYMENT_COMPLETED');
 
             // Prevent duplicate state entry
             if ($current_status !== $new_status
@@ -74,8 +80,10 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
                     $order->id
                 );
                 $orderHistory->add();
+                $invoice->setMeta('order_status', $new_status);
             }
         }
+        return;
     }
 
     protected function handlerWrapper() {
@@ -102,7 +110,7 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
             }
         }
 
-        $message = sprintf($this->l('Secret %s not valid for invoice %s'), $secret, $invoice ? $invoice : 'is null');
+        $message = sprintf($this->l('Secret %s not valid for invoice %s'), $secret, $invoice ? $invoice->invoice : 'is null');
         $this->module->log('info', $message);
         Utils::send_json($message, 400);
         exit;
