@@ -56,8 +56,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
             ->order($cart->id)
             ->lifetime($this->module->settings->getTimeout());
         
-        // Set invoice secret, rate & callback URL
-        $invoice->setMeta('rate', $cart_total / Utils::min2cur($invoice->createParams['amount'], $crypto->unitsFactor));
+        // Set invoice secret & callback URL
         $invoice->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart->id . $cart->secure_key)], true));
 
         $userData = UserData::init();

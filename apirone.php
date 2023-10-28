@@ -49,6 +49,9 @@ class Apirone extends PaymentModule
         Invoice::setLogger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
         Invoice::settings($this->settings);
+        // $this->registerHook('displayAdminOrderMain');
+        // $this->unregisterHook('displayAdminOrderTabLink');
+        // $this->unregisterHook('displayAdminOrderTabContent');
     }
 
     public function install()
@@ -411,22 +414,45 @@ class Apirone extends PaymentModule
 
     public function hookDisplayAdminOrderTabLink($params)
     {
-        // TODO: Move to template
-        $return = '<li class="nav-item"><a href="#paypal" class="nav-link" data-toggle="tab" role="tab"><i class="material-icons">list</i>Order apirone invoices</a></li>';
+        if (empty($this->getOrderInvoicesByOrderId($params['id_order']))) {
+            return;
+        }
 
-        return $return;
+        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/adminordertablink.tpl');
     }
 
     public function hookDisplayAdminOrderTabContent($params)
     {
-        $order = new Order($params['id_order']);
-        $list = [];
-        $invoices = Invoice::getOrderInvoices($params['id_order']);
-        foreach ($invoices as $invoice) {
-            $list[] = $invoice->details->invoice . ' - ' . $invoice->status;
+        return $this->hookDisplayAdminOrderMain($params);
+    }
+
+    public function hookDisplayAdminOrderMain($params)
+    {
+        if (empty($this->getOrderInvoicesByOrderId($params['id_order']))) {
+            return;
         }
 
-        return '<pre>' . print_r($order->getOrderPayments(), true) . '</pre>';
+        $order = new Order($params['id_order']);
+        $listItems = [];
+        $invoices = Invoice::getOrderInvoices($order->id_cart);
+        foreach ($invoices as $invoice) {
+            $details = $invoice->details;
+            $currency = $this->settings->getCurrency($details->currency);
+            $item = new stdClass();
+            // $item->date = $details->created; $this->context->language->date_format_full;
+            $item->date = date($this->context->language->date_format_full, strtotime($details->created));
+            $item->invoce = $details->invoice;
+            $item->address = $details->address;
+            $item->addressUrl = Utils::getAddressLink($currency, $details->address);
+            $item->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
+            $item->status = $details->status;
+            $item->history = $details->history;
+
+            $listItems[] = $item;
+        }
+        \Context::getContext()->smarty->assign('invoices', $listItems);
+        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvocesDetails.tpl');
+
     }
 
 
@@ -493,6 +519,15 @@ class Apirone extends PaymentModule
         return false;
     }
 
+    protected function getOrderInvoicesByOrderId($id)
+    {
+        $invoices = [];
+        $order = new Order($id);
+        if (Validate::isLoadedObject($order)) {
+            $invoices = Invoice::getOrderInvoices($order->id_cart);
+        }
+        return $invoices;
+    }
     protected function getSettings(): Settings
     {
         $settings = Configuration::get('APIRONE_SETTINGS');
@@ -540,8 +575,7 @@ class Apirone extends PaymentModule
     {
         return [
             'paymentOptions',
-            'displayAdminOrderTabLink',
-            'displayAdminOrderTabContent',
+            'displayAdminOrderMain',
         ];
     }
 
@@ -573,7 +607,7 @@ class Apirone extends PaymentModule
         $orderState->color = ($name == 'completed') ? '#5D8AB9' : '#AEC4DC';;
         $orderState->hidden = false;
         $orderState->delivery = false;
-        $orderState->logable = true;
+        $orderState->logable = false;
         $orderState->invoice = $orderState->send_email = $orderState->paid = ($name == 'completed') ? true: false ;
         $orderState->template = ($orderState->send_email) ? 'payment' : '';
 
