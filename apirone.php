@@ -49,9 +49,6 @@ class Apirone extends PaymentModule
         Invoice::setLogger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
         Invoice::settings($this->settings);
-        // $this->registerHook('displayAdminOrderMain');
-        // $this->unregisterHook('displayAdminOrderTabLink');
-        // $this->unregisterHook('displayAdminOrderTabContent');
     }
 
     public function install()
@@ -412,20 +409,6 @@ class Apirone extends PaymentModule
         return [$option];
     }
 
-    public function hookDisplayAdminOrderTabLink($params)
-    {
-        if (empty($this->getOrderInvoicesByOrderId($params['id_order']))) {
-            return;
-        }
-
-        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/adminordertablink.tpl');
-    }
-
-    public function hookDisplayAdminOrderTabContent($params)
-    {
-        return $this->hookDisplayAdminOrderMain($params);
-    }
-
     public function hookDisplayAdminOrderMain($params)
     {
         if (empty($this->getOrderInvoicesByOrderId($params['id_order']))) {
@@ -453,7 +436,7 @@ class Apirone extends PaymentModule
                 $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate()));
                 $itemHistory->status = $item->getStatus();
                 if ($item->getAmount() !== null) {
-                    $itemHistory->amount = $item->getAmount() * $currency->getUnitsFactor();
+                    $itemHistory->amount = Utils::exp2dec($item->getAmount() * $currency->getUnitsFactor());
                     $itemHistory->txid = Utils::getTransactionLink($currency, $item->getTxid());
                 }
                 $itemInvoice->history[] = $itemHistory;

@@ -34,7 +34,7 @@
                         {$item->date}
                         {$item->status}
                         {if property_exists($item, 'amount')}
-                            <a href="{$item->txidUrl}">{$item->amount}</a>
+                            <a href="{$item->txid}">{$item->amount}</a>
                         {/if}
                     {/foreach}
                 </td>
