@@ -438,17 +438,29 @@ class Apirone extends PaymentModule
         foreach ($invoices as $invoice) {
             $details = $invoice->details;
             $currency = $this->settings->getCurrency($details->currency);
-            $item = new stdClass();
-            // $item->date = $details->created; $this->context->language->date_format_full;
-            $item->date = date($this->context->language->date_format_full, strtotime($details->created));
-            $item->invoce = $details->invoice;
-            $item->address = $details->address;
-            $item->addressUrl = Utils::getAddressLink($currency, $details->address);
-            $item->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
-            $item->status = $details->status;
-            $item->history = $details->history;
 
-            $listItems[] = $item;
+            $itemInvoice = new stdClass();
+            $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created));
+            $itemInvoice->invoice = $details->invoice;
+            $itemInvoice->address = $details->address;
+            $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
+            $itemInvoice->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
+            $itemInvoice->status = $details->status;
+            $itemInvoice->history = [];
+            
+            foreach ($details->history as $item) {
+                $itemHistory = new stdClass();
+                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate()));
+                $itemHistory->status = $item->getStatus();
+                if ($item->getAmount() !== null) {
+                    $itemHistory->amount = $item->getAmount() * $currency->getUnitsFactor();
+                    $itemHistory->txid = Utils::getTransactionLink($currency, $item->getTxid());
+                }
+                $itemInvoice->history[] = $itemHistory;
+            }
+
+
+            $listItems[] = $itemInvoice;
         }
         \Context::getContext()->smarty->assign('invoices', $listItems);
         return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvocesDetails.tpl');

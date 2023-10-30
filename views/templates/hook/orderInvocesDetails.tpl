@@ -8,11 +8,10 @@
         <thead>
             <tr>
             <th class="table-head-date">Date</th>
+            <th class="table-head-invoice">Invoice</th>
             <th class="table-head-payment">Address</th>
             <th class="table-head-amount">Amount</th>
             <th class="table-head-transaction">Status</th>
-            <th class="table-head-invoice">Invoice</th>
-            <th class="table-head-employee">Employee</th>
             <th></th>
             </tr>
         </thead>
@@ -20,20 +19,23 @@
             {foreach from=$invoices item=details}
             <tr>
                 <td data-role="date-column">{$details->date}</td>
+                <td data-role="transaction-id-column">{$details->invoice}</td>
                 <td data-role="payment-method-column"><a href="{$details->addressUrl}" target="_blank">{$details->address}</a></td>
                 <td data-role="amount-column">{$details->amount}</td>
                 <td data-role="transaction-id-column">{$details->status}</td>
-                <td data-role="invoice-column">#IN000003</td>
-                <td data-role="invoice-column">-</td>
                 <td class="text-right">
                     <button class="btn btn-sm btn-outline-secondary js-payment-details-btn">{l s='Details' d='Admin.Global'}</button>
                 </td>
             </tr>
             <tr class="d-none" data-role="payment-details">
-                <td colspan="6">
+                <td colspan="5">
                     {foreach from=$details->history item=item}
-                    <p class="mb-0"><strong>Date</strong> {$item->date}</p>
-                    <p class="mb-0"><strong>Status</strong> {$item->status}</p>
+                    <p class="mb-0">
+                        {$item->date}
+                        {$item->status}
+                        {if property_exists($item, 'amount')}
+                            <a href="{$item->txidUrl}">{$item->amount}</a>
+                        {/if}
                     {/foreach}
                 </td>
             </tr>
