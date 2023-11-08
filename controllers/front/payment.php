@@ -2,7 +2,6 @@
 
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Model\UserData;
-use Apirone\SDK\Service\Utils;
 
 /**
  * Package: Prestashop Apirone Payment gateway
@@ -58,12 +57,15 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         
         // Set invoice secret & callback URL
         $invoice->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart->id . $cart->secure_key)], true));
+        
+        $invoice->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true));
 
         $userData = UserData::init();
-        $merchant = $this->module->settings->getMerchant();
-        if($merchant) {
-            $userData->setMerchant($merchant);
-        }
+        $merchant = $this->module->settings->getMerchant() ?? Configuration::get('PS_SHOP_NAME');
+
+        $userData->setMerchant($merchant);
+        $userData->setUrl(Context::getContext()->shop->getBaseURL(true));
+
         $userData->setPrice($cart_total . ' ' . strtoupper($currency->iso_code));
 
         $invoice->userData($userData);
