@@ -1,13 +1,5 @@
 <?php
 
-/**
- * Package: Prestashop Apirone Payment gateway
- *
- * Another header line 1
- * Another header line 2
- *
- */
-
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -17,7 +9,6 @@ require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
-use Apirone\SDK\Service\InvoiceDb;
 use Apirone\SDK\Service\InvoiceQuery;
 use Apirone\SDK\Service\Utils;
 class Apirone extends PaymentModule
@@ -423,7 +414,7 @@ class Apirone extends PaymentModule
             $currency = $this->settings->getCurrency($details->currency);
 
             $itemInvoice = new stdClass();
-            $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created));
+            $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created . 'Z'));
             $itemInvoice->invoice = $details->invoice;
             $itemInvoice->address = $details->address;
             $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
@@ -433,7 +424,7 @@ class Apirone extends PaymentModule
             
             foreach ($details->history as $item) {
                 $itemHistory = new stdClass();
-                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate()));
+                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate() . 'Z'));
                 $itemHistory->status = $item->getStatus();
                 if ($item->getAmount() !== null) {
                     $itemHistory->amount = Utils::exp2dec($item->getAmount() * $currency->getUnitsFactor());
@@ -449,7 +440,6 @@ class Apirone extends PaymentModule
         return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvocesDetails.tpl');
 
     }
-
 
     public function checkCurrency($cart)
     {
@@ -599,7 +589,7 @@ class Apirone extends PaymentModule
 
         $orderState->name = [];
         $orderState->module_name = $this->name;
-        $orderState->color = ($name == 'completed') ? '#5D8AB9' : '#AEC4DC';;
+        $orderState->color = ($name == 'completed') ? '#5D8AB9' : '#AEC4DC';
         $orderState->hidden = false;
         $orderState->delivery = false;
         $orderState->logable = false;
@@ -629,7 +619,6 @@ class Apirone extends PaymentModule
         return '/var/logs/' . date('Ymd') . '_apirone.log';
     }
 
-    // public static function logger_callback($log_level)
     public function logger_callback($log_level)
     {
         return function ($level, $message, $context = []) use ($log_level) {
@@ -670,10 +659,12 @@ class Apirone extends PaymentModule
 
         if (session_status() == PHP_SESSION_ACTIVE) {
             $_SESSION['notifications'] = $notifications;
-        } elseif (session_status() == PHP_SESSION_NONE) {
+        }
+        elseif (session_status() == PHP_SESSION_NONE) {
             session_start();
             $_SESSION['notifications'] = $notifications;
-        } else {
+        }
+        else {
             setcookie('notifications', $notifications);
         }
 
