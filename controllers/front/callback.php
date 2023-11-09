@@ -3,14 +3,6 @@
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Service\Utils;
 
-/**
- * Package: Prestashop Apirone Payment gateway
- *
- * Another header line 1
- * Another header line 2
- *
- */
-
 class ApironeCallbackModuleFrontController extends ModuleFrontController
 {
     public function postProcess()

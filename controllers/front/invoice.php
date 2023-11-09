@@ -39,7 +39,6 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
         if (property_exists($invoice, 'order') && $invoice->order !== 0) {
             $cart = new Cart($invoice->order);
             $backlink = $this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true);
-            // pa([$cart->id_customer, $this->context->customer->id]);
         }
 
         // Set render params

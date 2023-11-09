@@ -3,14 +3,6 @@
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Model\UserData;
 
-/**
- * Package: Prestashop Apirone Payment gateway
- *
- * Another header line 1
- * Another header line 2
- *
- */
-
 class ApironePaymentModuleFrontController extends ModuleFrontController
 {
     public function initContent()
