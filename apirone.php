@@ -423,7 +423,7 @@ class Apirone extends PaymentModule
             $currency = $this->settings->getCurrency($details->currency);
 
             $itemInvoice = new stdClass();
-            $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created));
+            $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created . 'Z'));
             $itemInvoice->invoice = $details->invoice;
             $itemInvoice->address = $details->address;
             $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
@@ -433,7 +433,7 @@ class Apirone extends PaymentModule
             
             foreach ($details->history as $item) {
                 $itemHistory = new stdClass();
-                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate()));
+                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate() . 'Z'));
                 $itemHistory->status = $item->getStatus();
                 if ($item->getAmount() !== null) {
                     $itemHistory->amount = Utils::exp2dec($item->getAmount() * $currency->getUnitsFactor());
