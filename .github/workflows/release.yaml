@@ -3,7 +3,7 @@ name: 'Build and release'
 on:
   push:
     tags:
-      - 'v*'
+      - '1.*'
   workflow_dispatch:
 
 jobs:
@@ -16,16 +16,35 @@ jobs:
       - name: Install composer dependencies
         run: composer update --no-dev --prefer-dist
 
-      - name: Build zip
+      - name: Build artifact
         run: make build
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v1
+      - name: Create ZIP
+        run: zip -r apirone-v${{ github.event.release.tag_name }}.zip ./apirone
 
+      - id: release_info
+        uses: toolmantim/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to GitHub Release
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # name: ${{ github.event.repository.name }}
-          name: apirone
-          path: apirone
+          upload_url: ${{ steps.release_info.outputs.upload_url }}
+          # asset_path: ./${{ github.event.repository.name }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+          # asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+          asset_path: apirone-v${{ github.event.release.tag_name }}.zip
+          asset_name: apirone-v${{ github.event.release.tag_name }}.zip
+          asset_content_type: application/zip
+      # - name: Release
+      #   id: release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: |
+      #       apirone-v${{ github.event.release.tag_name }}.zip
+      
 
 
         
