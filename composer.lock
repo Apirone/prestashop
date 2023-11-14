@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "eaac25ac3a1d7de0a32de047f7c94699",
+    "content-hash": "fde2bf7713e4ff14a21baf103124c44c",
     "packages": [
         {
             "name": "apirone/apirone-api-php",
-            "version": "v1.0.1",
+            "version": "1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Apirone/apirone-api-php.git",
-                "reference": "619f56ccb055c5700e2790dc01d10ebba18f9442"
+                "reference": "b7b820eb99338ffff44b260d6602663fa57ae341"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Apirone/apirone-api-php/zipball/619f56ccb055c5700e2790dc01d10ebba18f9442",
-                "reference": "619f56ccb055c5700e2790dc01d10ebba18f9442",
+                "url": "https://api.github.com/repos/Apirone/apirone-api-php/zipball/b7b820eb99338ffff44b260d6602663fa57ae341",
+                "reference": "b7b820eb99338ffff44b260d6602663fa57ae341",
                 "shasum": ""
             },
             "require": {
@@ -56,26 +56,26 @@
             ],
             "support": {
                 "issues": "https://github.com/Apirone/apirone-api-php/issues",
-                "source": "https://github.com/Apirone/apirone-api-php/tree/v1.0.1"
+                "source": "https://github.com/Apirone/apirone-api-php/tree/1.0.1"
             },
-            "time": "2023-10-05T08:58:52+00:00"
+            "time": "2023-11-13T13:53:57+00:00"
         },
         {
             "name": "apirone/apirone-sdk-php",
-            "version": "v1.0.0-rc.3",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Apirone/apirone-sdk-php.git",
-                "reference": "1642a4a853861575fd8656c1ea491c0ede8c38a3"
+                "reference": "26b8dfec035c78d944d95e1c1578df841323e74b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Apirone/apirone-sdk-php/zipball/1642a4a853861575fd8656c1ea491c0ede8c38a3",
-                "reference": "1642a4a853861575fd8656c1ea491c0ede8c38a3",
+                "url": "https://api.github.com/repos/Apirone/apirone-sdk-php/zipball/26b8dfec035c78d944d95e1c1578df841323e74b",
+                "reference": "26b8dfec035c78d944d95e1c1578df841323e74b",
                 "shasum": ""
             },
             "require": {
-                "apirone/apirone-api-php": "^1.0@RC"
+                "apirone/apirone-api-php": "^1.0"
             },
             "type": "library",
             "autoload": {
@@ -94,19 +94,30 @@
                 }
             ],
             "description": "Apirone SDK",
+            "homepage": "https://github.com/Apirone/apirone-sdk-php",
+            "keywords": [
+                "Apirone",
+                "DOGE",
+                "api",
+                "bch",
+                "bitcoin",
+                "btc",
+                "crypto",
+                "cryptocurrency",
+                "ltc",
+                "sdk"
+            ],
             "support": {
                 "issues": "https://github.com/Apirone/apirone-sdk-php/issues",
-                "source": "https://github.com/Apirone/apirone-sdk-php/tree/v1.0.0-rc.3"
+                "source": "https://github.com/Apirone/apirone-sdk-php/tree/1.0.0"
             },
-            "time": "2023-09-28T13:23:08+00:00"
+            "time": "2023-11-14T08:20:03+00:00"
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "RC",
-    "stability-flags": {
-        "apirone/apirone-sdk-php": 5
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],
