@@ -5,7 +5,6 @@ help:
 copy:
 	mkdir apirone
 	cp -rf ./controllers ./apirone/controllers
-	cp -rf ./sql ./apirone/sql
 	cp -rf ./translations ./apirone/translations
 	cp -rf ./upgrade ./apirone/upgrade
 	cp -rf ./upgrade ./apirone/upgrade
