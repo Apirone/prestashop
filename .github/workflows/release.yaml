@@ -19,13 +19,13 @@ jobs:
       - name: Build artifact
         run: make build
 
-      - name: Create ZIP
-        run: zip -r apirone-v${{ github.event.release.tag_name }}.zip ./apirone
-
       - id: release_info
         uses: toolmantim/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create ZIP
+        run: zip -r apirone-v${{ github.event.release.tag_name }}.zip ./apirone
 
       - name: Publish to GitHub Release
         uses: actions/upload-release-asset@v1.0.1
