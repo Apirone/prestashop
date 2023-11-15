@@ -1,4 +1,4 @@
-name: 'Build and release'
+name: 'Build & Release draft'
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
         run: make build
 
       - id: release_info
-        uses: toolmantim/release-drafter@v5
+        uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,25 +39,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to GitHub Release
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        id: release
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ steps.release_info.outputs.upload_url }}
-          # asset_path: ./${{ github.event.repository.name }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
-          # asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
-          # asset_path: apirone-v${{ github.event.release.tag_name }}.zip
-          # asset_name: apirone-v${{ github.event.release.tag_name }}.zip
-          asset_path: apirone-v${{ github.ref_name }}.zip
-          asset_name: apirone-v${{ github.ref_name }}.zip
-          asset_content_type: application/zip
-      # - name: Release
-      #   id: release
-      #   uses: softprops/action-gh-release@v1
+          files: |
+            apirone-*.zip
+
+      # - name: Publish to GitHub Release
+      #   uses: actions/upload-release-asset@v1.0.1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       #   with:
-      #     files: |
-      #       apirone-v${{ github.event.release.tag_name }}.zip
+      #     upload_url: ${{ steps.release_info.outputs.upload_url }}
+      #     # asset_path: ./${{ github.event.repository.name }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+      #     # asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+      #     # asset_path: apirone-v${{ github.event.release.tag_name }}.zip
+      #     # asset_name: apirone-v${{ github.event.release.tag_name }}.zip
+      #     asset_path: apirone-v${{ github.ref_name }}.zip
+      #     asset_name: apirone-v${{ github.ref_name }}.zip
+      #     asset_content_type: application/zip
+      # # - name: Release
+      # #   id: release
+      # #   uses: softprops/action-gh-release@v1
+      # #   with:
+      # #     files: |
+      # #       apirone-v${{ github.event.release.tag_name }}.zip
       
 
 
