@@ -1,5 +1,19 @@
 <?php
 
+/**
+ * 2017-2023 apirone.com
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade AmazonPay to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to http://www.prestashop.com for more information.
+ *
+ *  @author    Apirone OÜ <support@apirone.com>
+ *  @copyright 2017-2023 Apirone OÜ
+ *  @license   http://opensource.org/licenses/afl-3.0.php  The MIT License
+ */
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -261,20 +275,20 @@ class Apirone extends PaymentModule
      */
     protected function renderCurrenciesForm()
     {
-        $currencies = array();
+        $currencies = [];
 
         foreach ($this->settings->getCurrencies() as $item) {
             $class = $item->isTestnet() ? 'icon-coin test-coin' : 'icon-coin';
             $hint = ($item->address) ? $this->l('Remove address to deactivete currency.') : $this->l('Enter valid address to activete currency.');
             $icon = '/modules/apirone/views/css/icons/crypto/' . $item->abbr . '.svg';
-            $currency = array(
+            $currency = [
                 'type' => 'text',
                 'label' => $item->name,
                 'name' => $item->abbr,
                 'hint' => $hint,
                 'values' => 'address ' . $item->abbr,
                 'prefix' => '<i class="' . $class . '" style="background-image: url(' . $icon . ')"></i>',
-            );
+            ];
             if ($item->isTestnet()) {
                 $currency['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
             }
@@ -389,7 +403,7 @@ class Apirone extends PaymentModule
             return;
         }
 
-        $action = $this->context->link->getModuleLink($this->name, 'payment', array(), true);
+        $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
         $this->context->smarty->assign(['action' => $action, 'coins' => $coins]);
         
         $option = new \PrestaShop\PrestaShop\Core\Payment\PaymentOption();
@@ -437,6 +451,7 @@ class Apirone extends PaymentModule
             $listItems[] = $itemInvoice;
         }
         \Context::getContext()->smarty->assign('invoices', $listItems);
+
         return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvocesDetails.tpl');
 
     }
@@ -467,6 +482,7 @@ class Apirone extends PaymentModule
                 }
             }
         }
+
         return false;
     }
 
@@ -501,6 +517,7 @@ class Apirone extends PaymentModule
                 return $crypto;
             }
         }
+
         return false;
     }
 
@@ -511,6 +528,7 @@ class Apirone extends PaymentModule
         if (Validate::isLoadedObject($order)) {
             $invoices = Invoice::getOrderInvoices($order->id_cart);
         }
+
         return $invoices;
     }
     protected function getSettings(): Settings
@@ -532,6 +550,7 @@ class Apirone extends PaymentModule
         if (!Db::getInstance()->execute(InvoiceQuery::createInvoicesTable(_DB_PREFIX_))) {
             $this->warning = 'Can\'t create apirone table.';
             $this->log('error', $this->warning);
+
             return false;
         }
 
@@ -550,6 +569,7 @@ class Apirone extends PaymentModule
         if (!empty($errRedistredHooks)) {
             $this->warning = 'Failed to regisrer hooks: ' . implode(', ', $errRedistredHooks);
             $this->log('error', $this->warning);
+
             return false;        
         }
 
@@ -611,7 +631,7 @@ class Apirone extends PaymentModule
     public function log($level, $message, $context = [])
     {
         if($this->logger !== null) {
-            call_user_func_array($this->logger, array($level, $message, $context));
+            call_user_func_array($this->logger, [$level, $message, $context]);
         }
     }
 
@@ -650,25 +670,21 @@ class Apirone extends PaymentModule
 
     public function redirectWithNotice()
     {
-        $notifications = json_encode(array(
+        $notifications = json_encode([
             'error' => $this->context->controller->errors,
             'warning' => $this->context->controller->warning,
             'success' => $this->context->controller->success,
             'info' => $this->context->controller->info,
-        ));
+        ]);
 
         if (session_status() == PHP_SESSION_ACTIVE) {
-            $_SESSION['notifications'] = $notifications;
-        }
-        elseif (session_status() == PHP_SESSION_NONE) {
-            session_start();
             $_SESSION['notifications'] = $notifications;
         }
         else {
             setcookie('notifications', $notifications);
         }
 
-        return call_user_func_array(array('Tools', 'redirect'), func_get_args());
+        return call_user_func_array(['Tools', 'redirect'], func_get_args());
     }
 
 }

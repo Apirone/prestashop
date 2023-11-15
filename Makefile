@@ -33,6 +33,8 @@ copy-vendor:
 	cp -rf ./vendor/apirone/apirone-sdk-php/LICENSE ./apirone/vendor/apirone/apirone-sdk-php/LICENSE
 	cp -rf ./vendor/apirone/apirone-sdk-php/README.md ./apirone/vendor/apirone/apirone-sdk-php/README.md
 
+	cp ./index.php ./apirone/vendor/index.php
+
 build: clean copy copy-vendor
 
 build-zip: clean copy copy-vendor
