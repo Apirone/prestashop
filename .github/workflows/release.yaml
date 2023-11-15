@@ -25,7 +25,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create ZIP
-        run: zip -r apirone-v${{ github.event.release.tag_name }}.zip ./apirone
+        run: zip -r apirone-v${{ github.ref_name }}.zip ./apirone
+
+      - name: Output some vars
+        run: echo ${{ github }}
 
       - name: Publish to GitHub Release
         uses: actions/upload-release-asset@v1.0.1
@@ -35,8 +38,10 @@ jobs:
           upload_url: ${{ steps.release_info.outputs.upload_url }}
           # asset_path: ./${{ github.event.repository.name }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
           # asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
-          asset_path: apirone-v${{ github.event.release.tag_name }}.zip
-          asset_name: apirone-v${{ github.event.release.tag_name }}.zip
+          # asset_path: apirone-v${{ github.event.release.tag_name }}.zip
+          # asset_name: apirone-v${{ github.event.release.tag_name }}.zip
+          asset_path: apirone-v${{ github.ref_name }}.zip
+          asset_name: apirone-v${{ github.ref_name }}.zip
           asset_content_type: application/zip
       # - name: Release
       #   id: release
