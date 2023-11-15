@@ -25,7 +25,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create ZIP
-        run: zip -r apirone-v${{ github.event.release.tag_name }}.zip ./apirone
+        run: |
+          zip -r apirone-v${{ github.event.release.tag_name }}.zip ./apirone
+          echo ${{ github.event.release }}
 
       - name: Publish to GitHub Release
         uses: actions/upload-release-asset@v1.0.1
