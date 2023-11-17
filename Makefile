@@ -1,7 +1,21 @@
-BUILD_DIR := /tmp/prestashop
+
+##
+# Makefile to help manage docker-compose services
+#
+# Built on list_targets-Makefile:
+#
+#     https://gist.github.com/zaytseff/3c874a02b6e3db16c3ffa8406600060c
+#
+.PHONY: help build clean copy copy-vendor
+
+ME := $(realpath $(firstword $(MAKEFILE_LIST)))
+
+# BUILD_DIR := /tmp/prestashop
 SRC_DIR := $(shell pwd)
-help:
-	@egrep "^#" Makefile
+
+help: targets ## This help screen
+
+#Copy module fiiles into apirone folder
 copy:
 	mkdir apirone
 	cp -rf ./controllers ./apirone/controllers
@@ -15,6 +29,7 @@ copy:
 	cp -f ./logo.png ./apirone/logo.png
 	cp -f ./Readme.md ./apirone/Readme.md
 
+#Copy vendor libraries into apirone/vendor folder
 copy-vendor:
 
 	mkdir -p ./apirone/vendor/composer
@@ -35,15 +50,38 @@ copy-vendor:
 
 	cp ./index.php ./apirone/vendor/index.php
 
-build: clean copy copy-vendor
+build: clean copy copy-vendor ## Create apirone module folder
 
-build-zip: clean copy copy-vendor
+build-zip: clean copy copy-vendor ## Create artifact archive
 	zip -r apirone.zip ./apirone
 	rm -rf $(PWD)/apirone
 
-# clean: Remove artifact
-clean:
+
+clean: ## Remove artifact
 	rm -f apirone.zip
 	rm -rf apirone
 
-.PHONY: help build clean copy copy-vendor
+targets:  ## Lists targets
+	@echo
+	@echo "Make targets:"
+	@echo
+	@cat $(ME) | \
+	sed -n -E 's/^([^.][^: ]+)\s*:(([^=#]*##\s*(.*[^[:space:]])\s*)|[^=].*)$$/    \1	\4/p' | \
+	sort -u | \
+	expand -t15
+	@echo
+
+init: 
+	composer install
+
+assets:
+	rm -rf ./views/js/*.js
+	rm -rf ./views/img/*.svg
+	rm -rf ./views/css/*.css
+	cp ./vendor/apirone/apirone-sdk-php/src/assets/js/script.min.js ./views/js/front.js
+	cp ./vendor/apirone/apirone-sdk-php/src/assets/css/styles.min.css ./views/css/front.css
+	cp ./vendor/apirone/apirone-sdk-php/src/assets/css/icons/*.svg ./views/img
+	cp ./vendor/apirone/apirone-sdk-php/src/assets/css/icons/crypto/*.svg ./views/img
+	sed -i 's|icons/crypto/|../img/|g' ./views/css/front.css
+	sed -i 's|icons/|../img/|g' ./views/css/front.css
+	
