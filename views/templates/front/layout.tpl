@@ -33,8 +33,8 @@
      <link rel="shortcut icon" type="image/x-icon" href="{$shop.favicon}?{$shop.favicon_update_time}">
    {/block}
 
-    <script src="/modules/apirone/vendor/apirone/apirone-sdk-php/src/assets/js/script.min.js" type="text/javascript"></script>
-    <link href="/modules/apirone/vendor/apirone/apirone-sdk-php/src/assets/css/styles.min.css" rel="stylesheet">
+    <script src="/modules/apirone/views/js/front.js" type="text/javascript"></script>
+    <link href="/modules/apirone/views/css/front.css" rel="stylesheet">
 
   </head>
 
