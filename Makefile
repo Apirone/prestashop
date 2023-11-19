@@ -6,7 +6,7 @@
 #
 #     https://gist.github.com/zaytseff/3c874a02b6e3db16c3ffa8406600060c
 #
-.PHONY: help build clean copy copy-vendor
+.PHONY: help build build-zip zip clear clean copy copy-vendor fix init targets assets
 
 ME := $(realpath $(firstword $(MAKEFILE_LIST)))
 
@@ -50,18 +50,36 @@ copy-vendor:
 
 	cp ./index.php ./apirone/vendor/index.php
 
-build: clean copy copy-vendor ## Create apirone module folder
+build: assets clean copy copy-vendor fix ## Create apirone module artifact
 
-build-zip: clean copy copy-vendor ## Create artifact archive
-	zip -r apirone.zip ./apirone
-	rm -rf $(PWD)/apirone
+fix: ## php-cs-fixer artifact runner
+	@if [ ! -d './apirone' ]; then \
+		echo 'Run make build before'; \
+		exit 1; \
+	fi
 
+	@mkdir -p tools/php-cs-fixer
+	@composer require -q -d tools/php-cs-fixer friendsofphp/php-cs-fixer
+	tools/php-cs-fixer/vendor/bin/php-cs-fixer fix ./apirone
+	@rm -rf ./tools
+
+zip: ## Create artifact archive
+	@if [ ! -d './apirone' ]; then \
+		echo 'Run make build before'; \
+		exit 1; \
+	else \
+		rm -rf ./apirone.zip; \
+		zip -r apirone.zip ./apirone; \
+	fi
+build-zip: build zip clean ## build, zip and clean
+
+clear: clean ## see clean
 
 clean: ## Remove artifact
 	rm -f apirone.zip
 	rm -rf apirone
 
-targets:  ## Lists targets
+targets:
 	@echo
 	@echo "Make targets:"
 	@echo
