@@ -1,19 +1,4 @@
 <?php
-
-/**
- * 2017-2023 apirone.com
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade AmazonPay to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
- *  @author    Apirone OÜ <support@apirone.com>
- *  @copyright 2017-2023 Apirone OÜ
- *  @license   http://opensource.org/licenses/afl-3.0.php  The MIT License
- */
-
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -258,7 +243,7 @@ class Apirone extends PaymentModule
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submitApironeModule';
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false)
-            .'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
+            . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
 
         $helper->tpl_vars = [
@@ -325,7 +310,7 @@ class Apirone extends PaymentModule
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submitApironeModule';
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false)
-            .'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
+            . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
 
         $helper->tpl_vars = [
@@ -605,7 +590,7 @@ class Apirone extends PaymentModule
         $status = 'APIRONE_OC_PAYMENT_' . strtoupper($name);
 
         $stateId = Configuration::get($status);
-        $orderState = ($stateId) ? new OrderState((int)$stateId) : new OrderState();
+        $orderState = ($stateId) ? new OrderState((int) $stateId) : new OrderState();
 
         $orderState->name = [];
         $orderState->module_name = $this->name;
