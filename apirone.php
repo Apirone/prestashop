@@ -167,32 +167,32 @@ class Apirone extends PaymentModule
                         'type' => 'text',
                         'name' => 'merchant',
                         'label' => $this->l('Merchant'),
-                        'hint' => $this->l('Shows Merchant name in the payment order. If this field is blank then "Invoice invoice_id" will be shown as title.'),
+                        'hint' => $this->l('Show Merchant name on the plugin invoice page. If this field is empty, it will not be displayed for a customer.'),
                     ],
                     [
                         'type' => 'text',
                         'name' => 'timeout',
                         'label' => $this->l('Payment timeout'),
-                        'hint' => $this->l('The period during which a customer shall pay. Set value in seconds. Default value is 1800 (30 minutes)'),
+                        'hint' => $this->l('The period during which a customer shall pay. Set value in seconds. Default value is 1800 (30 minutes).'),
                     ],
                     [
                         'type' => 'text',
                         'name' => 'testCustomer',
                         'label' => $this->l('Test currency customer'),
-                        'hint' => $this->l('Enter an email of the registered customer to whom the test currencies will be shown.'),
+                        'hint' => $this->l('Enter an email of the customer to whom the test currencies will be shown.'),
                     ],
                     [
                         'type' => 'text',
                         'name' => 'factor',
                         'label' => $this->l('Price adjustment factor'),
-                        'hint' => $this->l('If you want to add/substract percent to/from the payment amount, use the following  price adjustment factor multiplied by the amount. For example: 100% * 0.99 = 99% | 100% * 1.01 = 101%'),
+                        'hint' => $this->l('If you want to add/subtract percent to/from the payment amount, use the following  price adjustment factor multiplied by the amount. For example: 100% * 0.99 = 99% | 100% * 1.01 = 101%'),
                     ],
                     [
                         'type' => 'switch',
                         'name' => 'logo',
                         'label' => $this->l('Apirone Logo'),
                         'is_bool' => true,
-                        'hint' => $this->l('Show Apirone logo on invoice page'),
+                        'hint' => $this->l('Show the Apirone logo on the invoice page.'),
                         'values' => [
                             [
                                 'id' => 'logo_on',
@@ -211,6 +211,7 @@ class Apirone extends PaymentModule
                         'name' => 'debug',
                         'label' => $this->l('Debug mode'),
                         'is_bool' => true,
+                        'hint' => $this->l('Write debug information into the log file.'),
                         'values' => [
                             [
                                 'id' => 'debug_on',
