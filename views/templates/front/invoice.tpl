@@ -19,6 +19,6 @@
 
 {block name='invoice'}
 
-{$invoice nofilter}
+{$invoice|cleanHtml nofilter}
 
 {/block}
