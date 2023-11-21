@@ -3,15 +3,14 @@
 $header = <<<TXT
 2017-2023 apirone.com
 
-DISCLAIMER
+NOTICE OF LICENSE
 
-Do not edit or add to this file if you wish to upgrade AmazonPay to newer
-versions in the future. If you wish to customize PrestaShop for your
-needs please refer to http://www.prestashop.com for more information.
+This source file licensed under the MIT license 
+that is bundled with this package in the file LICENSE.txt.
 
- @author    Apirone OÜ <support@apirone.com>
- @copyright 2017-2023 Apirone OÜ
- @license   http://opensource.org/licenses/afl-3.0.php  The MIT License
+@author    Apirone OÜ <support@apirone.com>
+@copyright 2017-2023 Apirone OÜ
+@license   https://opensource.org/license/mit/ MIT License
 TXT;
 
 $finder = PhpCsFixer\Finder::create()
@@ -23,30 +22,43 @@ $config = new PhpCsFixer\Config();
 
 return $config->setRules(
     [
-        // '@PSR2' => true,
-        'strict_param' => true,
-        'array_syntax' => ['syntax' => 'short'],
-        'list_syntax' => ['syntax' => 'short'],
-        'compact_nullable_typehint' => true,
-        'logical_operators' => true,
-        'no_useless_else' => true,
-        'no_useless_return' => true,
-        'blank_line_before_statement' => [
-            'statements' => [
-                'break',
-                'continue',
-                'return',
-                'throw',
-            ]
+        '@Symfony' => true,
+        'array_indentation' => true,
+        'cast_spaces' => [
+            'space' => 'single',
         ],
-        'control_structure_continuation_position' => ['position' => 'next_line'],
+        'combine_consecutive_issets' => true,
+        'concat_space' => [
+            'spacing' => 'one',
+        ],
+        'error_suppression' => [
+            'mute_deprecation_error' => false,
+            'noise_remaining_usages' => false,
+            'noise_remaining_usages_exclude' => [],
+        ],
+        'function_to_constant' => false,
+        'method_chaining_indentation' => true,
+        'no_alias_functions' => false,
+        'no_superfluous_phpdoc_tags' => false,
+        'non_printable_character' => [
+            'use_escape_sequences_in_strings' => true,
+        ],
+        'phpdoc_align' => [
+            'align' => 'left',
+        ],
+        'phpdoc_summary' => false,
+        'protected_to_private' => false,
+        'psr_autoloading' => false,
+        'self_accessor' => false,
+        'yoda_style' => false,
+        'single_line_throw' => false,
+        'no_alias_language_construct_call' => false,
         'header_comment' => [
             'comment_type' => 'PHPDoc',
             'header' => $header,
             'location' => 'after_open',
-            'separate' => 'both',
+            'separate' => 'none',
         ],
-        // 'void_return' => false,
     ]
 )
     ->setRiskyAllowed(true)

@@ -1,6 +1,7 @@
 .php-cs-fixer.cache
 .vscode
 
+tools
 vendor
 apirone
 apirone*

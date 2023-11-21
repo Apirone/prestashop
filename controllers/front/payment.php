@@ -1,19 +1,4 @@
 <?php
-
-/**
- * 2017-2023 apirone.com
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade AmazonPay to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
- *  @author    Apirone OÜ <support@apirone.com>
- *  @copyright 2017-2023 Apirone OÜ
- *  @license   http://opensource.org/licenses/afl-3.0.php  The MIT License
- */
-
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Model\UserData;
 
@@ -38,7 +23,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         if ($crypto == false) {
             $this->module->log('error', 'Can\'t get crypto details', [Tools::getValue('coin')]);
             $this->errors[] = $this->module->l('There has been an error processing your order.');
-            $this->redirectWithNotifications($this->context->link->getPageLink('order', true, null, ['step' => '3', ]));
+            $this->redirectWithNotifications($this->context->link->getPageLink('order', true, null, ['step' => '3']));
         }
 
         $currency = $this->context->currency;
@@ -63,7 +48,6 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         
         // Set invoice secret & callback URL
         $invoice->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart->id . $cart->secure_key)], true));
-        
         $invoice->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true));
 
         $userData = UserData::init();
@@ -82,7 +66,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         catch (Exception $e) {
             $this->module->log('warning', $e->getMessage());
             $this->errors[] = $this->module->l('There has been an error processing your order.');
-            $this->redirectWithNotifications($this->context->link->getPageLink('order', true, null, ['step' => '3', ]));
+            $this->redirectWithNotifications($this->context->link->getPageLink('order', true, null, ['step' => '3']));
         }
 
         $this->invoice_redirect($invoice);

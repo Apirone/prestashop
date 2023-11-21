@@ -1,3 +1,15 @@
+{**
+ * 2017-2023 apirone.com
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file licensed under the MIT license 
+ * that is bundled with this package in the file LICENSE.txt.
+ * 
+ * @author    Apirone OÜ <support@apirone.com>
+ * @copyright 2017-2023 Apirone OÜ
+ * @license   https://opensource.org/license/mit/ MIT License
+ *}
 {if (isset($status) == true) && ($status == 'ok')}
 <h3>{l s='Your order on %s is complete.' sprintf=$shop_name mod='apirone'}</h3>
 <p>

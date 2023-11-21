@@ -1,3 +1,15 @@
+{**
+ * 2017-2023 apirone.com
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file licensed under the MIT license 
+ * that is bundled with this package in the file LICENSE.txt.
+ * 
+ * @author    Apirone OÜ <support@apirone.com>
+ * @copyright 2017-2023 Apirone OÜ
+ * @license   https://opensource.org/license/mit/ MIT License
+ *}
 <div class="card mt-2" id="view_order_payments_block">
     <div class="card-header">
         <h3 class="card-header-title">Apirone Invoices</h3>
