@@ -13,7 +13,7 @@ ME := $(realpath $(firstword $(MAKEFILE_LIST)))
 
 help: targets ## This help screen
 
-build: assets clean copy copy-vendor fix ## Create apirone module artifact
+build: clean copy copy-vendor fix ## Create apirone module artifact
 
 fix: ## php-cs-fixer artifact runner
 	@if [ ! -d './apirone' ]; then \
@@ -54,12 +54,10 @@ targets:
 
 init: vendor assets ## Install vendor & update assets
 
-# Install vendor dependencies	
-vendor:
+vendor: ## Install vendor dependencies
 	composer install
 
-# Update assets from apirone-sdk-php library
-assets:
+assets: ## Update assets from apirone-sdk-php library
 	rm -rf ./views/js/*.js
 	rm -rf ./views/img/*.svg
 	rm -rf ./views/css/*.css
@@ -83,13 +81,14 @@ copy:
 	cp -f ./config.xml ./apirone/config.xml
 	cp -f ./index.php ./apirone/index.php
 	cp -f ./logo.png ./apirone/logo.png
-	cp -f ./Readme.md ./apirone/Readme.md
+	cp -f ./README.md ./apirone/README.md
+	cp -f ./LICENSE.txt ./apirone/LICENSE.txt
 
 #Copy vendor libraries into apirone/vendor folder
 copy-vendor:
 
 	mkdir -p ./apirone/vendor/composer
-	cp -rf ./vendor/composer ./apirone/vendor/composer
+	cp -rf ./vendor/composer ./apirone/vendor
 	cp -rf ./vendor/autoload.php ./apirone/vendor/autoload.php
 
 	mkdir -p ./apirone/vendor/apirone/apirone-api-php
