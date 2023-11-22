@@ -4,12 +4,14 @@ if (!defined('_PS_VERSION_')) {
 }
 
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
+require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Service\InvoiceQuery;
 use Apirone\SDK\Service\Utils;
+
 class Apirone extends PaymentModule
 {
 
@@ -628,13 +630,15 @@ class Apirone extends PaymentModule
     public function logger_callback($log_level)
     {
         return function ($level, $message, $context = []) use ($log_level) {
-            $logger = new FileLogger($log_level);
-            $logger->setFilename(_PS_ROOT_DIR_ . static::logFilename());
-            if (!empty($context)) {
-                $message .= ' DETAILS: ' . json_encode($context, true);
-            }
-            $psr_logger = new PSRLoggerAdapter($logger);
-            $psr_logger->log($level, $message);
+            // $logger = new FileLogger($log_level);
+            // $logger->setFilename(_PS_ROOT_DIR_ . static::logFilename());
+            // if (!empty($context)) {
+            //     $message .= ' DETAILS: ' . json_encode($context, true);
+            // }
+            // $psr_logger = new PSRLoggerAdapter($logger);
+            // $psr_logger->log($level, $message);
+            $logger = new FileLoggerWrapper($log_level);
+            $logger->log($level, $message, $context);
         };
     }
 
