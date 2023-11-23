@@ -630,13 +630,6 @@ class Apirone extends PaymentModule
     public function logger_callback($log_level)
     {
         return function ($level, $message, $context = []) use ($log_level) {
-            // $logger = new FileLogger($log_level);
-            // $logger->setFilename(_PS_ROOT_DIR_ . static::logFilename());
-            // if (!empty($context)) {
-            //     $message .= ' DETAILS: ' . json_encode($context, true);
-            // }
-            // $psr_logger = new PSRLoggerAdapter($logger);
-            // $psr_logger->log($level, $message);
             $logger = new FileLoggerWrapper($log_level);
             $logger->log($level, $message, $context);
         };
@@ -678,8 +671,8 @@ class Apirone extends PaymentModule
     }
 
 }
-function pa($mixed, $title = '') {
-
+function pa($mixed, $title = '')
+{
     echo '<pre>' . $title;
     print_r($mixed);
     echo '</pre>';
