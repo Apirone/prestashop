@@ -26,7 +26,7 @@ The Buyer adds items into the cart and prepares the order. Using API requests, t
 
 ## Requirements & License
 
-Prestashop 8.x
+Prestashop 1.7.x, 8.x
 
 This module is released under the [MIT][MIT] license
 
