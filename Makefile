@@ -72,6 +72,7 @@ assets: ## Update assets from apirone-sdk-php library
 #Copy module fiiles into apirone folder
 copy:
 	mkdir apirone
+	cp -rf ./classes ./apirone/classes
 	cp -rf ./controllers ./apirone/controllers
 	cp -rf ./translations ./apirone/translations
 	cp -rf ./upgrade ./apirone/upgrade
