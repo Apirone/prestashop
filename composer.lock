@@ -62,16 +62,16 @@
         },
         {
             "name": "apirone/apirone-sdk-php",
-            "version": "1.0.0",
+            "version": "1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Apirone/apirone-sdk-php.git",
-                "reference": "26b8dfec035c78d944d95e1c1578df841323e74b"
+                "reference": "a7e9c23bb6a307116611cf7ef941a69b3708bf98"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Apirone/apirone-sdk-php/zipball/26b8dfec035c78d944d95e1c1578df841323e74b",
-                "reference": "26b8dfec035c78d944d95e1c1578df841323e74b",
+                "url": "https://api.github.com/repos/Apirone/apirone-sdk-php/zipball/a7e9c23bb6a307116611cf7ef941a69b3708bf98",
+                "reference": "a7e9c23bb6a307116611cf7ef941a69b3708bf98",
                 "shasum": ""
             },
             "require": {
@@ -109,9 +109,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Apirone/apirone-sdk-php/issues",
-                "source": "https://github.com/Apirone/apirone-sdk-php/tree/1.0.0"
+                "source": "https://github.com/Apirone/apirone-sdk-php/tree/1.0.1"
             },
-            "time": "2023-11-14T08:20:03+00:00"
+            "time": "2023-11-30T08:57:53+00:00"
         }
     ],
     "packages-dev": [],
