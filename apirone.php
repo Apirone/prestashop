@@ -102,7 +102,6 @@ class Apirone extends PaymentModule
             $this->settings->setBacklink($values['backlink']);
             $this->settings->setLogo($values['logo']);
             $this->settings->setDebug($values['debug']);            
-            $this->settings->setExtra('processingFee', $values['processingFee']);
 
             // Validate timeout
             if ($values['timeout'] == 0) {
@@ -119,7 +118,30 @@ class Apirone extends PaymentModule
             else {
                 $this->settings->setFactor($values['factor']);
             }
-            
+
+            // Save processing fee plan
+            if ($this->settings->getExtra('processingFee') !== $values['processingFee']) {
+                if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
+                    $this->settings->setExtra('processingFee', $values['processingFee']);
+
+                    foreach ($this->settings->getCurrencies() as $item) {
+                        $this->settings->getCurrency($item->abbr)->setPolicy($values['processingFee']);
+                    }
+                    $this->settings->saveCurrencies();
+
+                    // Check for errors
+                    foreach ($this->settings->getCurrencies() as $item) {
+                        if ($item->hasError()) {
+                            $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
+                        }
+                    }
+                }
+                else {
+                    $this->context->controller->errors[] = $this->l("'Processing fee plan' must be 'percentage' or 'fixed'");
+                }
+            }
+
+            // Show success message if no errors
             if (empty($this->context->controller->errors)) {
                 Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
@@ -128,9 +150,11 @@ class Apirone extends PaymentModule
         // Save currencies if sent
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
+            $policy = $this->settings->getExtra('processingFee') ?? 'percentage';
 
             foreach ($this->settings->getCurrencies() as $item) {
-                $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy('percentage');
+                // $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy('percentage');
+                $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy($policy);
             }
 
             $this->settings->saveCurrencies();
@@ -544,6 +568,10 @@ class Apirone extends PaymentModule
         }
 
         $settings = Settings::init()->createAccount();
+        if ($settings->getExtra('processingFee') == null) {
+            $settings->setExtra('processingFee', 'percentage');
+        }
+
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
 
         return $settings;
