@@ -102,6 +102,7 @@ class Apirone extends PaymentModule
             $this->settings->setBacklink($values['backlink']);
             $this->settings->setLogo($values['logo']);
             $this->settings->setDebug($values['debug']);            
+            $this->settings->setExtra('processingFee', $values['processingFee']);
 
             // Validate timeout
             if ($values['timeout'] == 0) {
@@ -182,6 +183,20 @@ class Apirone extends PaymentModule
                         'name' => 'testCustomer',
                         'label' => $this->l('Test currency customer'),
                         'hint' => $this->l('Enter an email of the customer to whom the test currencies will be shown.'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'name' => 'processingFee',
+                        'label' => $this->l('Processing fee plan'),
+                        'options' => [
+                            'query' => [
+                                ['key' => 'percentage', 'name' => 'Percentage'],
+                                ['key' => 'fixed', 'name' => 'Fixed'],
+                            ],
+                            'id' => 'key',
+                            'name' => 'name'
+                        ],
+                        'hint' => $this->l(''),
                     ],
                     [
                         'type' => 'text',
@@ -336,6 +351,7 @@ class Apirone extends PaymentModule
         $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getTimeout()));
         $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getFactor()));
         $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getExtra('testCustomer')));
+        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getExtra('processingFee')));
         $values['backlink'] = pSQL(Tools::getValue('backlink', $settings->getBacklink()));
         $values['logo'] = pSQL(Tools::getValue('logo', $settings->getLogo()));
         $values['debug'] = pSQL(Tools::getValue('debug', $settings->getDebug()));
