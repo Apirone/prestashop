@@ -118,7 +118,30 @@ class Apirone extends PaymentModule
             else {
                 $this->settings->setFactor($values['factor']);
             }
-            
+
+            // Save processing fee plan
+            if ($this->settings->getExtra('processingFee') !== $values['processingFee']) {
+                if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
+                    $this->settings->setExtra('processingFee', $values['processingFee']);
+
+                    foreach ($this->settings->getCurrencies() as $item) {
+                        $this->settings->getCurrency($item->abbr)->setPolicy($values['processingFee']);
+                    }
+                    $this->settings->saveCurrencies();
+
+                    // Check for errors
+                    foreach ($this->settings->getCurrencies() as $item) {
+                        if ($item->hasError()) {
+                            $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
+                        }
+                    }
+                }
+                else {
+                    $this->context->controller->errors[] = $this->l("'Processing fee plan' must be 'percentage' or 'fixed'");
+                }
+            }
+
+            // Show success message if no errors
             if (empty($this->context->controller->errors)) {
                 Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
@@ -127,9 +150,11 @@ class Apirone extends PaymentModule
         // Save currencies if sent
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
+            $policy = $this->settings->getExtra('processingFee') ?? 'percentage';
 
             foreach ($this->settings->getCurrencies() as $item) {
-                $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy('percentage');
+                // $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy('percentage');
+                $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy($policy);
             }
 
             $this->settings->saveCurrencies();
@@ -182,6 +207,20 @@ class Apirone extends PaymentModule
                         'name' => 'testCustomer',
                         'label' => $this->l('Test currency customer'),
                         'hint' => $this->l('Enter an email of the customer to whom the test currencies will be shown.'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'name' => 'processingFee',
+                        'label' => $this->l('Processing fee plan'),
+                        'options' => [
+                            'query' => [
+                                ['key' => 'percentage', 'name' => 'Percentage'],
+                                ['key' => 'fixed', 'name' => 'Fixed'],
+                            ],
+                            'id' => 'key',
+                            'name' => 'name'
+                        ],
+                        'hint' => $this->l(''),
                     ],
                     [
                         'type' => 'text',
@@ -336,6 +375,7 @@ class Apirone extends PaymentModule
         $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getTimeout()));
         $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getFactor()));
         $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getExtra('testCustomer')));
+        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getExtra('processingFee')));
         $values['backlink'] = pSQL(Tools::getValue('backlink', $settings->getBacklink()));
         $values['logo'] = pSQL(Tools::getValue('logo', $settings->getLogo()));
         $values['debug'] = pSQL(Tools::getValue('debug', $settings->getDebug()));
@@ -528,6 +568,10 @@ class Apirone extends PaymentModule
         }
 
         $settings = Settings::init()->createAccount();
+        if ($settings->getExtra('processingFee') == null) {
+            $settings->setExtra('processingFee', 'percentage');
+        }
+
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
 
         return $settings;
