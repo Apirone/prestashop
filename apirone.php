@@ -37,7 +37,8 @@ class Apirone extends PaymentModule
         
         $this->settings = $this->getSettings();
         $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
-        
+        $this->context->controller->addCSS($this->_path.'views/css/back.css');
+
         Invoice::setLogger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
         Invoice::settings($this->settings);
@@ -307,7 +308,7 @@ class Apirone extends PaymentModule
         foreach ($this->settings->getCurrencies() as $item) {
             $class = $item->isTestnet() ? 'icon-coin test-coin' : 'icon-coin';
             $hint = ($item->address) ? $this->l('Remove address to deactivete currency.') : $this->l('Enter valid address to activete currency.');
-            $icon = '/modules/apirone/views/css/icons/crypto/' . $item->abbr . '.svg';
+            $icon = '/modules/apirone/views/img/' . str_replace('@', '-', $item->abbr) . '.svg';
             $currency = [
                 'type' => 'text',
                 'label' => $item->name,
