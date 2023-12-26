@@ -60,8 +60,7 @@ vendor: ## Install vendor dependencies
 assets: ## Update assets from apirone-sdk-php library
 	rm -rf ./views/js/*.js
 	rm -rf ./views/img/*.svg
-	rm -rf ./views/css/*.css
-	# cp ./vendor/apirone/apirone-sdk-php/src/assets/js/script.min.js ./views/js/front.js
+	rm -rf ./views/css/front.css
 	cat ./.header_stamp.txt ./vendor/apirone/apirone-sdk-php/src/assets/js/script.min.js > ./views/js/front.js
 	cp ./vendor/apirone/apirone-sdk-php/src/assets/css/styles.min.css ./views/css/front.css
 	cp ./vendor/apirone/apirone-sdk-php/src/assets/css/icons/*.svg ./views/img
