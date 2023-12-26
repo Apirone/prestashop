@@ -37,7 +37,6 @@ class Apirone extends PaymentModule
         
         $this->settings = $this->getSettings();
         $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
-        $this->context->controller->addCSS($this->_path.'views/css/back.css');
 
         Invoice::setLogger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
@@ -306,16 +305,14 @@ class Apirone extends PaymentModule
         $currencies = [];
 
         foreach ($this->settings->getCurrencies() as $item) {
-            $class = $item->isTestnet() ? 'icon-coin test-coin' : 'icon-coin';
             $hint = ($item->address) ? $this->l('Remove address to deactivete currency.') : $this->l('Enter valid address to activete currency.');
-            $icon = '/modules/apirone/views/img/' . str_replace('@', '-', $item->abbr) . '.svg';
             $currency = [
                 'type' => 'text',
                 'label' => $item->name,
                 'name' => $item->abbr,
                 'hint' => $hint,
                 'values' => 'address ' . $item->abbr,
-                'prefix' => '<i class="' . $class . '" style="background-image: url(' . $icon . ')"></i>',
+                'prefix' => '<i class="icon-coin ' . str_replace('@', '_', $item->abbr) . '"></i>',
             ];
             if ($item->isTestnet()) {
                 $currency['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
@@ -485,6 +482,17 @@ class Apirone extends PaymentModule
 
     }
 
+    public function hookActionAdminControllerSetMedia(array $params)
+    {
+        $action = Tools::getValue('action');
+
+        if ($action === 'vieworder' || $action === 'addorder') {
+            return;
+        }
+
+        $this->context->controller->addCSS('modules/' . $this->name . '/views/css/back.css');
+    }
+
     public function checkCurrency($cart)
     {
         $cart_currency = new Currency($cart->id_currency);
@@ -612,8 +620,9 @@ class Apirone extends PaymentModule
     private function getHooksList()
     {
         return [
-            'paymentOptions',
+            'actionAdminControllerSetMedia',
             'displayAdminOrderMain',
+            'paymentOptions',
         ];
     }
 

@@ -1,6 +1,27 @@
 .icon-coin {
-    background: url('../img/placeholder.svg') no-repeat;
+    background: url('../img/aprn.svg') no-repeat;
     background-size: cover;
     width: 19px;
     height: 19px;
+}
+.icon-coin.bch, .icon-coin.tbch {
+  background-image: url("../img/bch.svg"), url("../img/aprn.svg");
+}
+.icon-coin.btc, .icon-coin.tbtc {
+  background-image: url("../img/btc.svg"), url("../img/aprn.svg");
+}
+.icon-coin.doge, .icon-coin.tdoge {
+  background-image: url("../img/doge.svg"), url("../img/aprn.svg");
+}
+.icon-coin.ltc, .icon-coin.tltc {
+  background-image: url("../img/ltc.svg"), url("../img/aprn.svg");
+}
+.icon-coin.trx, .icon-coin.ttrx {
+  background-image: url("../img/trx.svg"), url("../img/aprn.svg");
+}
+.icon-coin.usdc-trx, .icon-coin.usdc-ttrx {
+  background-image: url("../img/usdc_trx.svg"), url("../img/aprn.svg");
+}
+.icon-coin.tbch, .icon-coin.tbtc, .icon-coin.tdoge, .icon-coin.tltc, .icon-coin.ttrx, .icon-coin.usdc-ttrx {
+  filter: grayscale(1);
 }
