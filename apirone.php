@@ -173,8 +173,15 @@ class Apirone extends PaymentModule
         }
 
         $this->context->smarty->assign('module_dir', $this->_path);
+        $this->context->smarty->assign('message', $message);
+        $this->context->smarty->assign('settings', $this->renderSettingsForm());
+        $this->context->smarty->assign('currencies', $this->renderCurrenciesForm());
+        $this->context->smarty->assign('apirone_account', $this->settings->getAccount());
+        $this->context->smarty->assign('plugin_version', $this->version);
+        $this->context->smarty->assign('ps_version', _PS_VERSION_);
+        $this->context->smarty->assign('php_version', phpversion());
 
-        return $message . $this->renderSettingsForm() . $this->renderCurrenciesForm();
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/apirone_admin.tpl');
     }
 
     /**
