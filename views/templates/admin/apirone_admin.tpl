@@ -41,6 +41,6 @@
         </div>
     </div>
     <div class="panel-footer">
-        <h4>{l s='Please <a href="https://www.smartsurvey.co.uk/s/2N0R8O/" target="_blank">fill-up</a> our survey to improve the PrestaShop plugin. The results will help us shape a road map for the future.' mod='apirone'}</h4>
+        <h4>{l s='Please [1]full-up[/1] our survey to improve the PrestaShop plugin. The results will help us shape a road map for the future.' tags=['<a href="https://www.smartsurvey.co.uk/s/2N0R8O/" target="_blank">'] mod='apirone'}</h4>
     </div>
 </div>
