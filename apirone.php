@@ -178,13 +178,12 @@ class Apirone extends PaymentModule
             if (!$latest) {
                 $message = $this->displayWarning($this->trans('Can\'t obtain latest version information. Please, try later.', [], 'apirone'));
             }
-            elseif (version_compare($this->version, $latest->name, 'eq')) {
+            elseif (version_compare($this->version, $latest, 'eq')) {
                 $message = $this->displayConfirmation($this->trans('You are using latest plugin version.', [], 'apirone'));
             }
-            elseif (version_compare($this->version, $latest->name, 'lt')) {
-                $zip = sprintf('<a href="' . $latest->zipball_url .'" target="_blank">%s</a>', $this->trans('download zip', [], 'apirone'));
-                $page = sprintf('<a href="https://github.com/Apirone/apirone-sdk-php/releases/tag/' . $latest->name .'" target="_blank">%s</a>', $this->trans('release page', [], 'apirone'));
-                $message = $this->displayWarning(sprintf($this->trans('Latest plugin version %s is available. Go to %s or %s.' [], 'apirone'), $latest->name , $page, $zip));
+            elseif (version_compare($this->version, $latest, 'lt')) {
+                $page = sprintf('<a href="https://github.com/apirone/prestashop/releases/latest" target="_blank">%s</a>', $this->trans('release page', [], 'apirone'));
+                $message = $this->displayWarning(sprintf($this->trans('Latest plugin version %s is available. Go to %s.', [], 'apirone'), $latest , $page));
             }
         }
 
@@ -765,7 +764,7 @@ class Apirone extends PaymentModule
         switch ($http_status){
             case 200:
                 $tags = json_decode($response);
-                return $tags[0];
+                return $tags[0]->name;
             case 400:
             default:
                 return false;
