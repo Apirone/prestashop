@@ -179,7 +179,7 @@ class Apirone extends PaymentModule
                 $message = $this->displayWarning($this->trans('Can\'t obtain latest version information. Please, try later.', [], 'apirone'));
             }
             elseif (version_compare($this->version, $latest->name, 'eq')) {
-                $message = $this->displayConfirmation($this->trans('You are use latest plugin version.', [], 'apirone'));
+                $message = $this->displayConfirmation($this->trans('You are using latest plugin version.', [], 'apirone'));
             }
             elseif (version_compare($this->version, $latest->name, 'lt')) {
                 $zip = sprintf('<a href="' . $latest->zipball_url .'" target="_blank">%s</a>', $this->trans('download zip', [], 'apirone'));
