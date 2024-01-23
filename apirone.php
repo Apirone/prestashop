@@ -176,7 +176,7 @@ class Apirone extends PaymentModule
             $latest = $this->getLatestVersion();
 
             if (!$latest) {
-                $message = $this->displayWarning($this->trans('Can\'t obtain latest version information. Please, try later.', [], 'apirone'));
+                $message = $this->displayError($this->trans('Can\'t obtain latest version information. Please, try later.', [], 'apirone'));
             }
             elseif (version_compare($this->version, $latest, 'eq')) {
                 $message = $this->displayConfirmation($this->trans('You are using latest plugin version.', [], 'apirone'));
