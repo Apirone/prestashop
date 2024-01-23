@@ -1,4 +1,4 @@
-# Apirone Crypto Payments
+# PrestaShop Crypto Payments
 
 ## About
 
