@@ -6,6 +6,7 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
+use Apirone\API\Http\Request;
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
@@ -171,6 +172,21 @@ class Apirone extends PaymentModule
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
             }
         }
+        if (Tools::isSubmit('submitApironeCheckUpdate')) {
+            $latest = $this->getLatestVersion();
+
+            if (!$latest) {
+                $message = $this->displayWarning($this->trans('Can\'t obtain latest version information. Please, try later.', [], 'apirone'));
+            }
+            elseif (version_compare($this->version, $latest->name, 'eq')) {
+                $message = $this->displayConfirmation($this->trans('You are use latest plugin version.', [], 'apirone'));
+            }
+            elseif (version_compare($this->version, $latest->name, 'lt')) {
+                $zip = sprintf('<a href="' . $latest->zipball_url .'" target="_blank">%s</a>', $this->trans('download zip', [], 'apirone'));
+                $page = sprintf('<a href="https://github.com/Apirone/apirone-sdk-php/releases/tag/' . $latest->name .'" target="_blank">%s</a>', $this->trans('release page', [], 'apirone'));
+                $message = $this->displayWarning(sprintf($this->trans('Latest plugin version %s is available. Go to %s or %s.' [], 'apirone'), $latest->name , $page, $zip));
+            }
+        }
 
         $this->context->smarty->assign('module_dir', $this->_path);
         $this->context->smarty->assign('message', $message);
@@ -227,7 +243,6 @@ class Apirone extends PaymentModule
                             'id' => 'key',
                             'name' => 'name'
                         ],
-                        'hint' => $this->l(''),
                     ],
                     [
                         'type' => 'text',
@@ -731,6 +746,32 @@ class Apirone extends PaymentModule
         return call_user_func_array(['Tools', 'redirect'], func_get_args());
     }
 
+    public function getLatestVersion() {
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_URL => 'https://api.github.com/repos/apirone/prestashop/tags',
+            CURLOPT_SSL_VERIFYPEER => 0,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_USERAGENT => 'apirone-prestashop-module',
+        ));
+
+        $response = curl_exec($curl);
+
+        $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        switch ($http_status){
+            case 200:
+                $tags = json_decode($response);
+                return $tags[0];
+            case 400:
+            default:
+                return false;
+        }
+        
+    }
 }
 function pa($mixed, $title = '')
 {
