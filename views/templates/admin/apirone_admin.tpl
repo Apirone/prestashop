@@ -36,7 +36,10 @@
                 <strong>{l s='PrestaShop version' mod='apirone'}</strong>: {$ps_version}<br/>
             </p>
             <hr>
-            <p><strong>{l s='Apirone support:' mod='apirone'}</strong> <a href="mailto:support@apirone.com">support@apirone.com</a></p>
+            <p>
+                <strong>{l s='Apirone support:' mod='apirone'}</strong> <a href="mailto:support@apirone.com">support@apirone.com</a><br/>
+                <strong>{l s='Releases page' mod='apirone'}</strong>: <a href="{$releases_page}" target="_blank">{$releases_page}</a>
+            </p>
         </div>
     </div>
     <div class="panel-footer">

@@ -195,6 +195,7 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('plugin_version', $this->version);
         $this->context->smarty->assign('ps_version', _PS_VERSION_);
         $this->context->smarty->assign('php_version', phpversion());
+        $this->context->smarty->assign('releases_page', 'https://github.com/apirone/prestashop/releases');
 
         return $this->context->smarty->fetch($this->local_path.'views/templates/admin/apirone_admin.tpl');
     }
