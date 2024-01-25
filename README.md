@@ -60,3 +60,9 @@ This module is released under the [MIT][MIT] license
 [Docs]: https://apirone.com/docs
 [Privacy]: https://apirone.com/privacy-policy
 [MIT]: https://opensource.org/license/mit/
+
+## Changelog
+
+### Version 1.0.0 ###
+
+* Plugin first version is released.
