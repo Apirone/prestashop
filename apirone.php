@@ -6,6 +6,7 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
+use Apirone\API\Http\Request;
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
@@ -25,7 +26,7 @@ class Apirone extends PaymentModule
         $this->tab = 'payments_gateways';
         $this->version = '1.0.0';
         $this->author = 'apirone.com';
-        $this->need_instance = 1;        
+        $this->need_instance = 1;
         $this->bootstrap = true;
 
         parent::__construct();
@@ -34,7 +35,7 @@ class Apirone extends PaymentModule
         $this->description = $this->l('Accept Crypto with Prestashop');
         $this->confirmUninstall = $this->l('Are you sure you want to remove the module?');
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
-        
+
         $this->settings = $this->getSettings();
         $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
 
@@ -82,7 +83,7 @@ class Apirone extends PaymentModule
     public function uninstall()
     {
         Configuration::deleteByName('APIRONE_SETTINGS');
-        
+
         return parent::uninstall();
     }
 
@@ -101,7 +102,7 @@ class Apirone extends PaymentModule
             $this->settings->setExtra('testCustomer', $values['testCustomer']);
             $this->settings->setBacklink($values['backlink']);
             $this->settings->setLogo($values['logo']);
-            $this->settings->setDebug($values['debug']);            
+            $this->settings->setDebug($values['debug']);
 
             // Validate timeout
             if ($values['timeout'] == 0) {
@@ -164,11 +165,25 @@ class Apirone extends PaymentModule
                     $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
                 }
             }
-            
+
             if (empty($this->context->controller->errors)) {
                 Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                 $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
+            }
+        }
+        if (Tools::isSubmit('submitApironeCheckUpdate')) {
+            $latest = $this->getLatestVersion();
+
+            if (!$latest) {
+                $message = $this->displayError($this->trans('Can\'t obtain latest version information. Please, try later.', [], 'apirone'));
+            }
+            elseif (version_compare($this->version, $latest, 'eq')) {
+                $message = $this->displayConfirmation($this->trans('You are using latest plugin version.', [], 'apirone'));
+            }
+            elseif (version_compare($this->version, $latest, 'lt')) {
+                $page = sprintf('<a href="https://github.com/apirone/prestashop/releases/latest" target="_blank">%s</a>', $this->trans('release page', [], 'apirone'));
+                $message = $this->displayWarning(sprintf($this->trans('Latest plugin version %s is available. Go to %s.', [], 'apirone'), $latest , $page));
             }
         }
 
@@ -180,6 +195,7 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('plugin_version', $this->version);
         $this->context->smarty->assign('ps_version', _PS_VERSION_);
         $this->context->smarty->assign('php_version', phpversion());
+        $this->context->smarty->assign('releases_page', 'https://github.com/apirone/prestashop/releases');
 
         return $this->context->smarty->fetch($this->local_path.'views/templates/admin/apirone_admin.tpl');
     }
@@ -227,7 +243,6 @@ class Apirone extends PaymentModule
                             'id' => 'key',
                             'name' => 'name'
                         ],
-                        'hint' => $this->l(''),
                     ],
                     [
                         'type' => 'text',
@@ -272,7 +287,7 @@ class Apirone extends PaymentModule
                                 'label' => $this->l('No')
                             ],
                         ],
-                    ],                    
+                    ],
                 ],
                 'submit' => [
                     'name' => 'submitApironeSettings',
@@ -312,7 +327,7 @@ class Apirone extends PaymentModule
         $currencies = [];
 
         foreach ($this->settings->getCurrencies() as $item) {
-            $hint = ($item->address) ? $this->l('Remove address to deactivete currency.') : $this->l('Enter valid address to activete currency.');
+            $hint = ($item->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
             $currency = [
                 'type' => 'text',
                 'label' => $item->name,
@@ -438,7 +453,7 @@ class Apirone extends PaymentModule
 
         $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
         $this->context->smarty->assign(['action' => $action, 'coins' => $coins]);
-        
+
         $option = new \PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         $option->setCallToActionText($this->l('Pay with crypto'))
             ->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))
@@ -468,7 +483,7 @@ class Apirone extends PaymentModule
             $itemInvoice->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
             $itemInvoice->status = $details->status;
             $itemInvoice->history = [];
-            
+
             foreach ($details->history as $item) {
                 $itemHistory = new stdClass();
                 $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate() . 'Z'));
@@ -578,7 +593,7 @@ class Apirone extends PaymentModule
     protected function getSettings(): Settings
     {
         $settings = Configuration::get('APIRONE_SETTINGS');
-        
+
         if ($settings) {
             return Settings::fromJson($settings);
         }
@@ -602,14 +617,14 @@ class Apirone extends PaymentModule
             return false;
         }
 
-        return true;    
+        return true;
     }
 
     private function registerHooks()
     {
         $errRedistredHooks = [];
         foreach ($this->getHooksList() as $hook) {
-            
+
             if (!$this->registerHook($hook)) {
                 $errRedistredHooks[] = $hook;
             }
@@ -618,7 +633,7 @@ class Apirone extends PaymentModule
             $this->warning = 'Failed to regisrer hooks: ' . implode(', ', $errRedistredHooks);
             $this->log('error', $this->warning);
 
-            return false;        
+            return false;
         }
 
         return true;
@@ -696,7 +711,7 @@ class Apirone extends PaymentModule
         };
     }
 
-    public static function db_callback() 
+    public static function db_callback()
     {
         return static function($query) {
             $db = Db::getInstance();
@@ -731,6 +746,32 @@ class Apirone extends PaymentModule
         return call_user_func_array(['Tools', 'redirect'], func_get_args());
     }
 
+    public function getLatestVersion() {
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_URL => 'https://api.github.com/repos/apirone/prestashop/tags',
+            CURLOPT_SSL_VERIFYPEER => 0,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_USERAGENT => 'apirone-prestashop-module',
+        ));
+
+        $response = curl_exec($curl);
+
+        $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        switch ($http_status){
+            case 200:
+                $tags = json_decode($response);
+                return $tags[0]->name;
+            case 400:
+            default:
+                return false;
+        }
+
+    }
 }
 function pa($mixed, $title = '')
 {

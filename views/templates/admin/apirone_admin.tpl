@@ -23,7 +23,6 @@
             <p>{l s='Please do not spend real crypto if you want to test the plugin. Testnet is free and such coins will not be stuck in case the network fee will be too high. Free faucets to get testnet coins are as follows:' mod="apirone"}</p>
             <a target="_blank" href="https://coinfaucet.eu/en/btc-testnet/?lid=apirone">Coinfaucet</a><br>
             <a target="_blank" href="https://bitcoinfaucet.uo1.net?lid=apirone">Bitcoinfaucet</a><br>
-            <a target="_blank" href="https://testnet-faucet.com/btc-testnet/?lid=apirone">Testnet faucet</a><br>
             <a target="_blank" href="https://kuttler.eu/en/bitcoin/btc/faucet/?lid=apirone">Kuttler</a>
             <hr>
             <p><strong>{l s='Read more:' mod='apirone'}</strong> <a href="https://apirone.com/faq" target="_blank">https://apirone.com/faq</a></p>
@@ -37,10 +36,19 @@
                 <strong>{l s='PrestaShop version' mod='apirone'}</strong>: {$ps_version}<br/>
             </p>
             <hr>
-            <p><strong>{l s='Apirone support:' mod='apirone'}</strong> <a href="mailto:support@apirone.com">support@apirone.com</a></p>
+            <p>
+                <strong>{l s='Apirone support:' mod='apirone'}</strong> <a href="mailto:support@apirone.com">support@apirone.com</a><br/>
+                <strong>{l s='Releases page' mod='apirone'}</strong>: <a href="{$releases_page}" target="_blank">{$releases_page}</a>
+            </p>
         </div>
     </div>
     <div class="panel-footer">
+        <form id="module_form_update" method="post">
+                <input type="hidden" name="submitApironeModule" value="1">
+                <button type="submit" value="1" id="module_form_submit_btn" name="submitApironeCheckUpdate" class="btn btn-default pull-right">
+                    Check update
+                </button>
+                </form>
         <h4>{l s='Please [1]full-up[/1] our survey to improve the PrestaShop plugin. The results will help us shape a road map for the future.' tags=['<a href="https://www.smartsurvey.co.uk/s/2N0R8O/" target="_blank">'] mod='apirone'}</h4>
     </div>
 </div>

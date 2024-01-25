@@ -103,5 +103,11 @@ copy-vendor:
 	cp -rf ./vendor/apirone/apirone-sdk-php/LICENSE ./apirone/vendor/apirone/apirone-sdk-php/LICENSE
 	cp -rf ./vendor/apirone/apirone-sdk-php/README.md ./apirone/vendor/apirone/apirone-sdk-php/README.md
 
+	mkdir -p ./apirone/vendor/apirone/php-qr-code
+	cp -rf ./vendor/apirone/php-qr-code/src ./apirone/vendor/apirone/php-qr-code/src
+	cp -rf ./vendor/apirone/php-qr-code/composer.json ./apirone/vendor/apirone/php-qr-code/composer.json
+	cp -rf ./vendor/apirone/php-qr-code/LICENSE ./apirone/vendor/apirone/php-qr-code/LICENSE
+	cp -rf ./vendor/apirone/php-qr-code/README.md ./apirone/vendor/apirone/php-qr-code/README.md
+
 	cp ./index.php ./apirone/vendor/index.php
 
