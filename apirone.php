@@ -26,7 +26,7 @@ class Apirone extends PaymentModule
         $this->tab = 'payments_gateways';
         $this->version = '1.0.0';
         $this->author = 'apirone.com';
-        $this->need_instance = 1;        
+        $this->need_instance = 1;
         $this->bootstrap = true;
 
         parent::__construct();
@@ -35,7 +35,7 @@ class Apirone extends PaymentModule
         $this->description = $this->l('Accept Crypto with Prestashop');
         $this->confirmUninstall = $this->l('Are you sure you want to remove the module?');
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
-        
+
         $this->settings = $this->getSettings();
         $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
 
@@ -83,7 +83,7 @@ class Apirone extends PaymentModule
     public function uninstall()
     {
         Configuration::deleteByName('APIRONE_SETTINGS');
-        
+
         return parent::uninstall();
     }
 
@@ -102,7 +102,7 @@ class Apirone extends PaymentModule
             $this->settings->setExtra('testCustomer', $values['testCustomer']);
             $this->settings->setBacklink($values['backlink']);
             $this->settings->setLogo($values['logo']);
-            $this->settings->setDebug($values['debug']);            
+            $this->settings->setDebug($values['debug']);
 
             // Validate timeout
             if ($values['timeout'] == 0) {
@@ -165,7 +165,7 @@ class Apirone extends PaymentModule
                     $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
                 }
             }
-            
+
             if (empty($this->context->controller->errors)) {
                 Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                 $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
@@ -287,7 +287,7 @@ class Apirone extends PaymentModule
                                 'label' => $this->l('No')
                             ],
                         ],
-                    ],                    
+                    ],
                 ],
                 'submit' => [
                     'name' => 'submitApironeSettings',
@@ -327,7 +327,7 @@ class Apirone extends PaymentModule
         $currencies = [];
 
         foreach ($this->settings->getCurrencies() as $item) {
-            $hint = ($item->address) ? $this->l('Remove address to deactivete currency.') : $this->l('Enter valid address to activete currency.');
+            $hint = ($item->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
             $currency = [
                 'type' => 'text',
                 'label' => $item->name,
@@ -453,7 +453,7 @@ class Apirone extends PaymentModule
 
         $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
         $this->context->smarty->assign(['action' => $action, 'coins' => $coins]);
-        
+
         $option = new \PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         $option->setCallToActionText($this->l('Pay with crypto'))
             ->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))
@@ -483,7 +483,7 @@ class Apirone extends PaymentModule
             $itemInvoice->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
             $itemInvoice->status = $details->status;
             $itemInvoice->history = [];
-            
+
             foreach ($details->history as $item) {
                 $itemHistory = new stdClass();
                 $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate() . 'Z'));
@@ -593,7 +593,7 @@ class Apirone extends PaymentModule
     protected function getSettings(): Settings
     {
         $settings = Configuration::get('APIRONE_SETTINGS');
-        
+
         if ($settings) {
             return Settings::fromJson($settings);
         }
@@ -617,14 +617,14 @@ class Apirone extends PaymentModule
             return false;
         }
 
-        return true;    
+        return true;
     }
 
     private function registerHooks()
     {
         $errRedistredHooks = [];
         foreach ($this->getHooksList() as $hook) {
-            
+
             if (!$this->registerHook($hook)) {
                 $errRedistredHooks[] = $hook;
             }
@@ -633,7 +633,7 @@ class Apirone extends PaymentModule
             $this->warning = 'Failed to regisrer hooks: ' . implode(', ', $errRedistredHooks);
             $this->log('error', $this->warning);
 
-            return false;        
+            return false;
         }
 
         return true;
@@ -711,7 +711,7 @@ class Apirone extends PaymentModule
         };
     }
 
-    public static function db_callback() 
+    public static function db_callback()
     {
         return static function($query) {
             $db = Db::getInstance();
@@ -770,7 +770,7 @@ class Apirone extends PaymentModule
             default:
                 return false;
         }
-        
+
     }
 }
 function pa($mixed, $title = '')
