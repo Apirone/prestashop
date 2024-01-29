@@ -1,6 +1,7 @@
 <?php
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Model\UserData;
+use Apirone\SDK\Service\Utils;
 
 class ApironePaymentModuleFrontController extends ModuleFrontController
 {
@@ -34,7 +35,10 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
             $invoice = $cart_invoices[0];
             $invoice->update();
             if ($invoice->status !== 'expired' && $invoice->details->currency == $crypto->abbr) {
-                $this->invoice_redirect($invoice);
+                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->getFactor(), $currency->iso_code, $crypto->abbr);
+                if ($cryptoAmount == $invoice->details->getAmount()) {
+                    $this->invoice_redirect($invoice);
+                }
             }
         }
 
