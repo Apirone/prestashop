@@ -24,7 +24,7 @@ class Apirone extends PaymentModule
     {
         $this->name = 'apirone';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.0';
+        $this->version = '1.0.1';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
         $this->bootstrap = true;
@@ -48,7 +48,7 @@ class Apirone extends PaymentModule
     {
         $this->warning = null;
 
-        // Check cURL extention
+        // Check cURL extension
         if (extension_loaded('curl') == false) {
             $this->warning = $this->l('You have to enable the cURL extension on your server to install this module.');
         }
