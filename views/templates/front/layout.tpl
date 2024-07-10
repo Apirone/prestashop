@@ -28,8 +28,8 @@
      <link rel="shortcut icon" type="image/x-icon" href="{$shop.favicon}?{$shop.favicon_update_time}">
    {/block}
 
-    <script src="/modules/apirone/views/js/front.js" type="text/javascript"></script>
-    <link href="/modules/apirone/views/css/front.css" rel="stylesheet">
+    <script src="{$urls.base_url}/modules/apirone/views/js/front.js" type="text/javascript"></script>
+    <link href="{$urls.base_url}/modules/apirone/views/css/front.css" rel="stylesheet">
 
   </head>
 

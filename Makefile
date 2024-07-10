@@ -55,7 +55,7 @@ targets:
 init: vendor assets ## Install vendor & update assets
 
 vendor: ## Install vendor dependencies
-	composer install
+	composer install --ignore-platform-reqs
 
 assets: ## Update assets from apirone-sdk-php library
 	rm -rf ./views/js/*.js
