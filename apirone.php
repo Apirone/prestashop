@@ -24,7 +24,7 @@ class Apirone extends PaymentModule
     {
         $this->name = 'apirone';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.1';
+        $this->version = '1.0.2';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
         $this->bootstrap = true;
