@@ -94,6 +94,8 @@ class Apirone extends PaymentModule
     {
         $message = '';
         // Save settings if sent
+        $this->settings->loadCurrencies();
+
         if (Tools::isSubmit('submitApironeSettings')) {
             $errors = [];
             $values = $this->getSettingsFormValues();
@@ -125,15 +127,15 @@ class Apirone extends PaymentModule
                 if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
                     $this->settings->setExtra('processingFee', $values['processingFee']);
 
-                    foreach ($this->settings->getCurrencies() as $item) {
-                        $this->settings->getCurrency($item->abbr)->setPolicy($values['processingFee']);
+                    foreach ($this->settings->getCurrencies() as $network) {
+                        $this->settings->getCurrency($network->abbr)->setPolicy($values['processingFee']);
                     }
                     $this->settings->saveCurrencies();
 
                     // Check for errors
-                    foreach ($this->settings->getCurrencies() as $item) {
-                        if ($item->hasError()) {
-                            $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
+                    foreach ($this->settings->getCurrencies() as $network) {
+                        if ($network->hasError()) {
+                            $this->context->controller->errors[] = $network->name . ' has error: ' . $network->getError();
                         }
                     }
                 }
@@ -151,22 +153,31 @@ class Apirone extends PaymentModule
         // Save currencies if sent
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
-            $policy = $this->settings->getExtra('processingFee') ?? 'percentage';
 
-            foreach ($this->settings->getCurrencies() as $item) {
-                // $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy('percentage');
-                $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy($policy);
+            foreach ($this->settings->getNetworks() as $network) {
+                $this->settings->getCurrency($network->abbr)->parseAbbr()->setAddress($values[$network->abbr]);
+                if ($network->isNetwork()) {
+                    $tokens = $network->getTokens($this->settings->currencies);
+                    if ($tokens) {
+                        $tokens = array_merge([$network], $tokens);
+                        foreach ($tokens as $token) {
+                            $this->settings->getCurrency($token->abbr)->setAddress($network->getAddress());
+                            $this->settings->setExtra($token->abbr, pSQL(Tools::getValue($token->abbr . '_active', '')));
+                        }
+                    }
+                }
             }
 
             $this->settings->saveCurrencies();
 
-            foreach ($this->settings->getCurrencies() as $item) {
-                if ($item->hasError()) {
-                    $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
+            foreach ($this->settings->getCurrencies() as $network) {
+                if ($network->hasError()) {
+                    $this->context->controller->errors[] = $network->name . ' has error: ' . $network->getError();
                 }
             }
 
             if (empty($this->context->controller->errors)) {
+            // pa($this->settings->toJsonString());
                 Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                 $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
@@ -197,7 +208,7 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('php_version', phpversion());
         $this->context->smarty->assign('releases_page', 'https://github.com/apirone/prestashop/releases');
 
-        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/apirone_admin.tpl');
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/settings.tpl');
     }
 
     /**
@@ -319,30 +330,56 @@ class Apirone extends PaymentModule
         return $helper->generateForm([$form_fields]);
     }
 
+    protected function renderNetworkCoins ($coins)
+    {
+        $values = [];
+        foreach ($coins as $coin) {
+            $values[$coin->abbr . '_active'] = $this->settings->getExtra($coin->abbr);
+        }
+        $this->context->smarty->assign('values', $values);
+        $this->context->smarty->assign('coins', $coins);
+
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/coins_selector.tpl');
+
+    }
+
     /**
      * Generate Currencies form
      */
     protected function renderCurrenciesForm()
     {
-        $currencies = [];
+        $form_data = [];
+        $currencies = $this->settings->getCurrencies();
+        $networks = $this->settings->getNetworks();
 
-        foreach ($this->settings->getCurrencies() as $item) {
-            $hint = ($item->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
-            $currency = [
+        foreach ($networks as $network) {
+            $hint = ($network->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
+            $tokens = ($network->getTokens($currencies));
+            $item = [
                 'type' => 'text',
-                'label' => $item->name,
-                'name' => $item->abbr,
+                'label' => $network->name,
+                'name' => $network->abbr,
                 'hint' => $hint,
-                'values' => 'address ' . $item->abbr,
-                'prefix' => '<i class="icon-coin ' . str_replace('@', '_', $item->abbr) . '"></i>',
+                'values' => $network->abbr,
+                'prefix' => '<i class="icon-coin ' . str_replace('@', '_', $network->abbr) . '"></i>',
             ];
-            if ($item->isTestnet()) {
-                $currency['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
+            if ($network->isTestnet()) {
+                $item['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
             }
-            $currencies[] = $currency;
+            if ($network->address && !empty($tokens)) {
+                // Add coins
+                $coins = [];
+                $coins[] = $network;
+                foreach($tokens as $token) {
+                    $coins[] = $token;
+                }
+
+                $item['desc'] = $this->renderNetworkCoins($coins);
+            }
+            $form_data[] = $item;
         }
 
-        if (empty($currencies)) {
+        if (empty($form_data)) {
             $this->context->controller->errors[] = 'Can`t get currencies list from apirone gateway. Please, try later.';
         }
 
@@ -353,7 +390,7 @@ class Apirone extends PaymentModule
                     'icon' => 'icon-bitcoin',
                 ],
                 'class' => 'class',
-                'input' => $currencies,
+                'input' => $form_data,
                 'submit' => [
                     'name' => 'submitApironeCurrencies',
                     'title' => $this->trans('Save', [], 'Admin.Actions'),
@@ -408,9 +445,9 @@ class Apirone extends PaymentModule
      */
     protected function getCurrenciesFormValues()
     {
-        $currencies = $this->getSettings()->getCurrencies();
+        $networks = $this->getSettings()->getNetworks();
         $values = [];
-        foreach ($currencies as $item) {
+        foreach ($networks as $item) {
             $values[$item->abbr] = pSQL(Tools::getValue($item->abbr, $item->getAddress()));
         }
 
@@ -512,7 +549,7 @@ class Apirone extends PaymentModule
             return;
         }
 
-        $this->context->controller->addCSS('modules/' . $this->name . '/views/css/back.css');
+        $this->context->controller->addCSS(__PS_BASE_URI__ . '/modules/' . $this->name . '/views/css/back.css');
     }
 
     public function checkCurrency($cart)
@@ -547,23 +584,34 @@ class Apirone extends PaymentModule
 
     public function getAvailableCryptos(): array
     {
-        $currencies = [];
+        $coins = [];
+        $networks = $this->settings->getNetworks();
         $testCustomer = $this->settings->getExtra('testCustomer');
 
-        foreach ($this->settings->getCurrencies() as $item) {
-            if ($item->getAddress() !== null && !$item->hasError()) {
-                if ($item->isTestnet()) {
+        foreach ($networks as $network) {
+            if ($network->getAddress() !== null && !$network->hasError()) {
+                if ($network->isTestnet()) {
                     if ($testCustomer == $this->context->customer->email || $testCustomer == '*') {
-                        $currencies[] = $item;
+                        $coins[] = $network;
                     }
                 }
                 else {
-                    $currencies[] = $item;
+                    $tokens = $network->getTokens($this->settings->getCurrencies());
+                    if ($tokens) {
+                        $tokens = array_merge([$network], $tokens);
+                        foreach ($tokens as $token) {
+                            if ($this->settings->getExtra($token->abbr) == 'on') {
+                                $coins[] = $token;
+                            }
+                        }
+                    }
+                    else {
+                        $coins[] = $network;
+                    }
                 }
             }
         }
-
-        return $currencies;
+        return $coins;
     }
 
     public function getCrypto()
@@ -774,7 +822,8 @@ class Apirone extends PaymentModule
     }
 }
 function pa($mixed, $title = '')
-{
+{   
+    $title .= ($title) ? '<br/>' : '';
     echo '<pre>' . $title;
     print_r($mixed);
     echo '</pre>';
