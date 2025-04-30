@@ -20,7 +20,7 @@
         {else}
             <select class="form-control form-control-select" name="coin" required>
             {foreach $coins as $coin}
-                <option value="{$coin->abbr}">{$coin->name}: {$coin->amount}</option>
+                <option value="{$coin->abbr}">{$coin->abbr}: {$coin->amount}</option>
             {/foreach}
             </select>
         {/if}
