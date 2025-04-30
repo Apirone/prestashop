@@ -25,7 +25,18 @@
 .icon-coin.usdt_trx, .icon-coin.usdt_ttrx {
   background-image: url("../img/usdt_trx.svg"), url("../img/aprn.svg");
 }
-.icon-coin.tbch, .icon-coin.tbtc, .icon-coin.tdoge, .icon-coin.tltc, .icon-coin.ttrx, .icon-coin.usdc-ttrx {
+.icon-coin.eth, .icon-coin.teth {
+  background-image: url("../img/eth.svg"), url("../img/aprn.svg");
+}
+.icon-coin.usdc_eth, .icon-coin.usdc_teth {
+  background-image: url("../img/usdc_eth.svg"), url("../img/aprn.svg");
+}
+.icon-coin.usdt_eth, .icon-coin.usdt_teth {
+  background-image: url("../img/usdt_eth.svg"), url("../img/aprn.svg");
+}
+.icon-coin.tbch, .icon-coin.tbtc, .icon-coin.tdoge, .icon-coin.tltc,
+.icon-coin.ttrx, .icon-coin.usdc-ttrx, .icon-coin.usdt-ttrx,
+.icon-coin.teth, .icon-coin.usdc-teth, .icon-coin.usdt-teth {
   filter: grayscale(1);
 }
 
