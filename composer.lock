@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9bbb85c12801bae5ac1c86c39243ec84",
+    "content-hash": "a4161e6d61455783e0092b89bcf0e06e",
     "packages": [
         {
             "name": "apirone/apirone-api-php",
