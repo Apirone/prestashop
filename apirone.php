@@ -472,12 +472,13 @@ class Apirone extends PaymentModule
 
         $coins = [];
         $cart = $params['cart'];
-        $currency = $this->getCartCurrency($cart);
+        $fiat = $this->getCartCurrency($cart);
 
-        foreach ($this->getAvailableCryptos() as $item) {
+        foreach ($this->getAvailableCryptos() as $currency) {
             try {
-                $item->amount = utils::exp2dec(Utils::fiat2crypto($cart->getCartTotalPrice(), $currency['iso_code'], $item->abbr));
-                $coins[] = $item;
+                // $currency->amount = Utils::humanizeAmount(Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency->abbr), $currency);
+                $currency->amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
+                $coins[] = $currency;
             }
             catch(Exception $e) {
                 LoggerWrapper::error($e->getMessage());
