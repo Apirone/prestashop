@@ -62,16 +62,16 @@
         },
         {
             "name": "apirone/apirone-sdk-php",
-            "version": "1.2.1",
+            "version": "1.2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Apirone/apirone-sdk-php.git",
-                "reference": "42353b5624d1ecb197ad2f3f07c89cc4a9705d50"
+                "reference": "19cd21149f3f959c1a36ed1924caa0acb04060e2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Apirone/apirone-sdk-php/zipball/42353b5624d1ecb197ad2f3f07c89cc4a9705d50",
-                "reference": "42353b5624d1ecb197ad2f3f07c89cc4a9705d50",
+                "url": "https://api.github.com/repos/Apirone/apirone-sdk-php/zipball/19cd21149f3f959c1a36ed1924caa0acb04060e2",
+                "reference": "19cd21149f3f959c1a36ed1924caa0acb04060e2",
                 "shasum": ""
             },
             "require": {
@@ -110,9 +110,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Apirone/apirone-sdk-php/issues",
-                "source": "https://github.com/Apirone/apirone-sdk-php/tree/1.2.1"
+                "source": "https://github.com/Apirone/apirone-sdk-php/tree/1.2.2"
             },
-            "time": "2025-04-28T12:33:30+00:00"
+            "time": "2025-05-07T11:22:15+00:00"
         },
         {
             "name": "apirone/php-qr-code",

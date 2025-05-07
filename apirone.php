@@ -476,7 +476,6 @@ class Apirone extends PaymentModule
 
         foreach ($this->getAvailableCryptos() as $currency) {
             try {
-                // $currency->amount = Utils::humanizeAmount(Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency->abbr), $currency);
                 $currency->amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
                 $coins[] = $currency;
             }
