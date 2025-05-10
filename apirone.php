@@ -6,10 +6,11 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
-use Apirone\API\Http\Request;
+// use Apirone\API\Http\Request;
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
+// use Apirone\SDK\Model\HistoryItem;
 use Apirone\SDK\Service\InvoiceQuery;
 use Apirone\SDK\Service\Utils;
 
@@ -23,8 +24,8 @@ class Apirone extends PaymentModule
     public function __construct()
     {
         $this->name = 'apirone';
-        $this->tab = 'payments_gateways';
         $this->version = '1.0.2';
+        $this->tab = 'payments_gateways';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
         $this->bootstrap = true;
@@ -39,9 +40,10 @@ class Apirone extends PaymentModule
         $this->settings = $this->getSettings();
         $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
 
-        Invoice::setLogger($this->logger);
+        Invoice::logger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
         Invoice::settings($this->settings);
+
     }
 
     public function install()
@@ -63,7 +65,7 @@ class Apirone extends PaymentModule
             $this->registerHooks();
         }
 
-        // Add datatable
+        // Add data table
         if (is_null($this->warning)) {
             $this->createApironeTable();
         }
@@ -127,15 +129,15 @@ class Apirone extends PaymentModule
                 if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
                     $this->settings->setExtra('processingFee', $values['processingFee']);
 
-                    foreach ($this->settings->getCurrencies() as $network) {
-                        $this->settings->getCurrency($network->abbr)->setPolicy($values['processingFee']);
+                    foreach ($this->settings->currencies as $network) {
+                        $this->settings->currency($network->abbr)->policy($values['processingFee']);
                     }
                     $this->settings->saveCurrencies();
 
                     // Check for errors
-                    foreach ($this->settings->getCurrencies() as $network) {
+                    foreach ($this->settings->currencies as $network) {
                         if ($network->hasError()) {
-                            $this->context->controller->errors[] = $network->name . ' has error: ' . $network->getError();
+                            $this->context->controller->errors[] = $network->name . ' has error: ' . $network->error;
                         }
                     }
                 }
@@ -154,14 +156,14 @@ class Apirone extends PaymentModule
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
 
-            foreach ($this->settings->getNetworks() as $network) {
-                $this->settings->getCurrency($network->abbr)->parseAbbr()->setAddress($values[$network->abbr]);
+            foreach ($this->settings->networks() as $network) {
+                $this->settings->currency($network->abbr)->address($values[$network->abbr]);
                 if ($network->isNetwork()) {
                     $tokens = $network->getTokens($this->settings->currencies);
                     if ($tokens) {
                         $tokens = array_merge([$network], $tokens);
                         foreach ($tokens as $token) {
-                            $this->settings->getCurrency($token->abbr)->setAddress($network->getAddress());
+                            $this->settings->currency($token->abbr)->address($network->address);
                             $this->settings->setExtra($token->abbr, pSQL(Tools::getValue($token->abbr . '_active', '')));
                         }
                     }
@@ -170,14 +172,13 @@ class Apirone extends PaymentModule
 
             $this->settings->saveCurrencies();
 
-            foreach ($this->settings->getCurrencies() as $network) {
+            foreach ($this->settings->currencies as $network) {
                 if ($network->hasError()) {
-                    $this->context->controller->errors[] = $network->name . ' has error: ' . $network->getError();
+                    $this->context->controller->errors[] = $network->name . ' has error: ' . $network->error;
                 }
             }
 
             if (empty($this->context->controller->errors)) {
-            // pa($this->settings->toJsonString());
                 Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                 $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
@@ -202,7 +203,7 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('message', $message);
         $this->context->smarty->assign('settings', $this->renderSettingsForm());
         $this->context->smarty->assign('currencies', $this->renderCurrenciesForm());
-        $this->context->smarty->assign('apirone_account', $this->settings->getAccount());
+        $this->context->smarty->assign('apirone_account', $this->settings->account);
         $this->context->smarty->assign('plugin_version', $this->version);
         $this->context->smarty->assign('ps_version', _PS_VERSION_);
         $this->context->smarty->assign('php_version', phpversion());
@@ -349,15 +350,13 @@ class Apirone extends PaymentModule
     protected function renderCurrenciesForm()
     {
         $form_data = [];
-        $currencies = $this->settings->getCurrencies();
-        $networks = $this->settings->getNetworks();
 
-        foreach ($networks as $network) {
+        foreach ($this->settings->networks as $network) {
             $hint = ($network->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
-            $tokens = ($network->getTokens($currencies));
+            $tokens = ($network->getTokens($this->settings->currencies));
             $item = [
                 'type' => 'text',
-                'label' => $network->name,
+                'label' => $network->name . ((!empty($tokens)) ? ' ' . $this->l('Blockchain') : ''),
                 'name' => $network->abbr,
                 'hint' => $hint,
                 'values' => $network->abbr,
@@ -366,7 +365,7 @@ class Apirone extends PaymentModule
             if ($network->isTestnet()) {
                 $item['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
             }
-            if ($network->address && !empty($tokens)) {
+            if (!empty($tokens)) {
                 // Add coins
                 $coins = [];
                 $coins[] = $network;
@@ -445,7 +444,7 @@ class Apirone extends PaymentModule
      */
     protected function getCurrenciesFormValues()
     {
-        $networks = $this->getSettings()->getNetworks();
+        $networks = $this->getSettings()->networks();
         $values = [];
         foreach ($networks as $item) {
             $values[$item->abbr] = pSQL(Tools::getValue($item->abbr, $item->getAddress()));
@@ -507,27 +506,27 @@ class Apirone extends PaymentModule
 
         $order = new Order($params['id_order']);
         $listItems = [];
-        $invoices = Invoice::getOrderInvoices($order->id_cart);
+        $invoices = Invoice::getByOrder($order->id_cart);
         foreach ($invoices as $invoice) {
             $details = $invoice->details;
-            $currency = $this->settings->getCurrency($details->currency);
+            $currency = $this->settings->currency($details->currency);
 
             $itemInvoice = new stdClass();
             $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created . 'Z'));
             $itemInvoice->invoice = $details->invoice;
             $itemInvoice->address = $details->address;
             $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
-            $itemInvoice->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
+            $itemInvoice->amount = Utils::humanizeAmount($details->amount, $currency) . ' ' . strtoupper($details->currency);
             $itemInvoice->status = $details->status;
             $itemInvoice->history = [];
 
             foreach ($details->history as $item) {
                 $itemHistory = new stdClass();
-                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate() . 'Z'));
-                $itemHistory->status = $item->getStatus();
-                if ($item->getAmount() !== null) {
-                    $itemHistory->amount = Utils::exp2dec($item->getAmount() * $currency->getUnitsFactor());
-                    $itemHistory->txid = Utils::getTransactionLink($currency, $item->getTxid());
+                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->date . 'Z'));
+                $itemHistory->status = $item->status;
+                if ($item->amount !== null) {
+                    $itemHistory->amount = Utils::humanizeAmount($item->amount, $currency);
+                    $itemHistory->txid = Utils::getTransactionLink($currency, $item->txid);
                 }
                 $itemInvoice->history[] = $itemHistory;
             }
@@ -585,7 +584,7 @@ class Apirone extends PaymentModule
     public function getAvailableCryptos(): array
     {
         $coins = [];
-        $networks = $this->settings->getNetworks();
+        $networks = $this->settings->networks();
         $testCustomer = $this->settings->getExtra('testCustomer');
 
         foreach ($networks as $network) {
@@ -596,7 +595,7 @@ class Apirone extends PaymentModule
                     }
                 }
                 else {
-                    $tokens = $network->getTokens($this->settings->getCurrencies());
+                    $tokens = $network->getTokens($this->settings->currencies);
                     if ($tokens) {
                         $tokens = array_merge([$network], $tokens);
                         foreach ($tokens as $token) {
