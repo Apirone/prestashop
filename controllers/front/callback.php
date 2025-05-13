@@ -40,7 +40,7 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
             catch (Exception $e) {
                 $this->module->log('error', 'Can\'t create an order.', [$e->getMessage()]);
                 $message = 'Can\'t create an order.';
-                Utils::send_json($message, 400);
+                Utils::sendJson($message, 400);
             }
 
             $order = Order::getByCartId($cart->id);
@@ -95,7 +95,7 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
         
         $invoice = property_exists($data, 'invoice') ? $data->invoice : null; 
         if ($invoice) {
-            $invoice = Invoice::getInvoice($invoice);
+            $invoice = Invoice::get($invoice);
             $cart = new Cart($invoice->order);
 
             if ($cart->id && $secret == md5($cart->id . $cart->secure_key)) {
@@ -107,7 +107,7 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
 
         $message = sprintf($this->l('Secret %s not valid for invoice %s'), $secret, $invoice ? $invoice->invoice : 'is null');
         $this->module->log('info', $message);
-        Utils::send_json($message, 400);
+        Utils::sendJson($message, 400);
         exit;
     }
 }

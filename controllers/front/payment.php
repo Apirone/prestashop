@@ -29,8 +29,11 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
 
         $currency = $this->context->currency;
 
+        // Create an apirone invoice
+        $cart_total = $cart->getOrderTotal();
+
         // Check if invoice exist, not expired & has same crypto
-        $cart_invoices = Invoice::getOrderInvoices($cart->id);
+        $cart_invoices = Invoice::getByOrder($cart->id);
         if (!empty($cart_invoices)) {
             $invoice = $cart_invoices[0];
             $invoice->update();
@@ -42,9 +45,6 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
             }
         }
 
-        // Create an apirone invoice
-        $cart_total = $cart->getOrderTotal();
-
         $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->getFactor());
         $invoice
             ->order($cart->id)
@@ -55,12 +55,12 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         $invoice->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true));
 
         $userData = UserData::init();
-        $merchant = $this->module->settings->getMerchant() ?? Configuration::get('PS_SHOP_NAME');
+        $merchant = $this->module->settings->getMeta('merchant') ?? Configuration::get('PS_SHOP_NAME');
 
-        $userData->setMerchant($merchant);
-        $userData->setUrl(Context::getContext()->shop->getBaseURL(true));
+        $userData->merchant($merchant);
+        $userData->url(Context::getContext()->shop->getBaseURL());
 
-        $userData->setPrice($cart_total . ' ' . strtoupper($currency->iso_code));
+        $userData->price($cart_total . ' ' . strtoupper($currency->iso_code));
 
         $invoice->userData($userData);
 

@@ -102,18 +102,23 @@ class Apirone extends PaymentModule
             $errors = [];
             $values = $this->getSettingsFormValues();
 
-            $this->settings->setMerchant($values['merchant']);
-            $this->settings->setExtra('testCustomer', $values['testCustomer']);
-            $this->settings->setBacklink($values['backlink']);
-            $this->settings->setLogo($values['logo']);
-            $this->settings->setDebug($values['debug']);
+            // $this->settings->setMerchant($values['merchant']);
+            // $this->settings->setExtra('testCustomer', $values['testCustomer']);
+            // $this->settings->setBacklink($values['backlink']);
+            // $this->settings->setLogo($values['logo']);
+            // $this->settings->setDebug($values['debug']);
+            // $this->settings->setBacklink($values['backlink']);
+            $this->settings->addMeta('merchant', $values['merchant']);
+            $this->settings->addMeta('testCustomer', $values['testCustomer']);
+            $this->settings->addMeta('logo', $values['logo']);
+            $this->settings->addMeta('debug', $values['debug']);
 
             // Validate timeout
             if ($values['timeout'] == 0) {
                 $this->context->controller->errors[] = $this->l("'Payment timeout' must be positive integer");
             }
             else {
-                $this->settings->setTimeout($values['timeout']);
+                $this->settings->addMeta('timeout', $values['timeout']);
             }
 
             // Validate factor
@@ -121,13 +126,13 @@ class Apirone extends PaymentModule
                 $this->context->controller->errors[] = $this->l("'Price adjustment factor' must be positive float");
             }
             else {
-                $this->settings->setFactor($values['factor']);
+                $this->settings->addMeta('factor', $values['factor']);
             }
 
             // Save processing fee plan
-            if ($this->settings->getExtra('processingFee') !== $values['processingFee']) {
+            if ($this->settings->getMeta('processingFee') !== $values['processingFee']) {
                 if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
-                    $this->settings->setExtra('processingFee', $values['processingFee']);
+                    $this->settings->addMeta('processingFee', $values['processingFee']);
 
                     foreach ($this->settings->currencies as $network) {
                         $this->settings->currency($network->abbr)->policy($values['processingFee']);
@@ -164,7 +169,7 @@ class Apirone extends PaymentModule
                         $tokens = array_merge([$network], $tokens);
                         foreach ($tokens as $token) {
                             $this->settings->currency($token->abbr)->address($network->address);
-                            $this->settings->setExtra($token->abbr, pSQL(Tools::getValue($token->abbr . '_active', '')));
+                            $this->settings->addMeta($token->abbr, pSQL(Tools::getValue($token->abbr . '_active', '')));
                         }
                     }
                 }
@@ -335,7 +340,7 @@ class Apirone extends PaymentModule
     {
         $values = [];
         foreach ($coins as $coin) {
-            $values[$coin->abbr . '_active'] = $this->settings->getExtra($coin->abbr);
+            $values[$coin->abbr . '_active'] = $this->settings->getMeta($coin->abbr);
         }
         $this->context->smarty->assign('values', $values);
         $this->context->smarty->assign('coins', $coins);
@@ -427,14 +432,13 @@ class Apirone extends PaymentModule
     {
         $settings = $this->getSettings();
         $values = [];
-        $values['merchant'] = pSQL(Tools::getValue('merchant', $settings->getMerchant()));
-        $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getTimeout()));
-        $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getFactor()));
-        $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getExtra('testCustomer')));
-        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getExtra('processingFee')));
-        $values['backlink'] = pSQL(Tools::getValue('backlink', $settings->getBacklink()));
-        $values['logo'] = pSQL(Tools::getValue('logo', $settings->getLogo()));
-        $values['debug'] = pSQL(Tools::getValue('debug', $settings->getDebug()));
+        $values['merchant'] = pSQL(Tools::getValue('merchant', $settings->getMeta('merchant')));
+        $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getMeta('timeout')));
+        $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getMeta('factor')));
+        $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getMeta('testCustomer')));
+        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getMeta('processingFee')));
+        $values['logo'] = pSQL(Tools::getValue('logo', $settings->getMeta('logo')));
+        $values['debug'] = pSQL(Tools::getValue('debug', $settings->getMeta('debug')));
 
         return $values;
     }
@@ -632,26 +636,48 @@ class Apirone extends PaymentModule
         $invoices = [];
         $order = new Order($id);
         if (Validate::isLoadedObject($order)) {
-            $invoices = Invoice::getOrderInvoices($order->id_cart);
+            // $invoices = Invoice::getOrderInvoices($order->id_cart);
+            $invoices = Invoice::getByOrder($order->id_cart);
         }
 
         return $invoices;
     }
     protected function getSettings(): Settings
     {
-        $settings = Configuration::get('APIRONE_SETTINGS');
+        $json = Configuration::get('APIRONE_SETTINGS');
 
-        if ($settings) {
-            return Settings::fromJson($settings);
+        if ($json) {
+            $settings = Settings::fromJson($json);
+
+            if (!empty($settings->meta)) {
+                return $settings;
+            }
+            return $this->updateSettings($settings);
         }
 
         $settings = Settings::init()->createAccount();
-        if ($settings->getExtra('processingFee') == null) {
-            $settings->setExtra('processingFee', 'percentage');
+        if ($settings->getMeta('processingFee') == null) {
+            $settings->addMeta('processingFee', 'percentage');
         }
 
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
 
+        return $settings;
+    }
+
+    private function updateSettings($settings)
+    {
+        $settings->addMeta('merchant', $settings->merchant);
+        $settings->addMeta('timeout', $settings->timeout);
+        $settings->addMeta('factor', $settings->factor);
+        $settings->addMeta('logo', $settings->logo);
+        $settings->addMeta('debug', $settings->debug);
+        foreach((array) $settings->extra as $key => $val) {
+            $settings->addMeta($key, $val);
+        };
+
+        Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
+// pa($settings);
         return $settings;
     }
 

@@ -31,7 +31,7 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
                 $id = property_exists($params, 'invoice') ? (string) $params->invoice : null;
             }
         }
-        $invoice = Invoice::getInvoice($id);
+        $invoice = Invoice::get($id);
 
         // Create backlink
         $backlink = '';
@@ -43,6 +43,7 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
         // Set render params
         Render::$idParam = 'id';
         Render::$backlink = $backlink;
+        Render::$logo = Invoice::$settings->getMeta('logo');
 
         return $invoice;
     }
