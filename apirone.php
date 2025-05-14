@@ -6,11 +6,9 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
-// use Apirone\API\Http\Request;
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
-// use Apirone\SDK\Model\HistoryItem;
 use Apirone\SDK\Service\InvoiceQuery;
 use Apirone\SDK\Service\Utils;
 
@@ -38,7 +36,7 @@ class Apirone extends PaymentModule
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
 
         $this->settings = $this->getSettings();
-        $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
+        $this->logger = $this->logger_callback($this->settings->getMeta('debug') ? FileLogger::DEBUG : FileLogger::INFO);
 
         Invoice::logger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
@@ -102,12 +100,6 @@ class Apirone extends PaymentModule
             $errors = [];
             $values = $this->getSettingsFormValues();
 
-            // $this->settings->setMerchant($values['merchant']);
-            // $this->settings->setExtra('testCustomer', $values['testCustomer']);
-            // $this->settings->setBacklink($values['backlink']);
-            // $this->settings->setLogo($values['logo']);
-            // $this->settings->setDebug($values['debug']);
-            // $this->settings->setBacklink($values['backlink']);
             $this->settings->addMeta('merchant', $values['merchant']);
             $this->settings->addMeta('testCustomer', $values['testCustomer']);
             $this->settings->addMeta('logo', $values['logo']);
@@ -589,7 +581,7 @@ class Apirone extends PaymentModule
     {
         $coins = [];
         $networks = $this->settings->networks();
-        $testCustomer = $this->settings->getExtra('testCustomer');
+        $testCustomer = $this->settings->getMeta('testCustomer');
 
         foreach ($networks as $network) {
             if ($network->getAddress() !== null && !$network->hasError()) {
@@ -603,7 +595,7 @@ class Apirone extends PaymentModule
                     if ($tokens) {
                         $tokens = array_merge([$network], $tokens);
                         foreach ($tokens as $token) {
-                            if ($this->settings->getExtra($token->abbr) == 'on') {
+                            if ($this->settings->getMeta($token->abbr) == 'on') {
                                 $coins[] = $token;
                             }
                         }
@@ -648,13 +640,14 @@ class Apirone extends PaymentModule
 
         if ($json) {
             $settings = Settings::fromJson($json);
-
-            if (!empty($settings->meta)) {
-                return $settings;
+            if (empty((array)$settings->meta)) {
+                return $this->updateSettings($settings);
             }
-            return $this->updateSettings($settings);
+
+            return $settings;
         }
 
+        // Create new instance
         $settings = Settings::init()->createAccount();
         if ($settings->getMeta('processingFee') == null) {
             $settings->addMeta('processingFee', 'percentage');
@@ -677,7 +670,6 @@ class Apirone extends PaymentModule
         };
 
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
-// pa($settings);
         return $settings;
     }
 

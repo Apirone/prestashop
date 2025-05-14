@@ -38,17 +38,17 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
             $invoice = $cart_invoices[0];
             $invoice->update();
             if ($invoice->status !== 'expired' && $invoice->details->currency == $crypto->abbr) {
-                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->getFactor(), $currency->iso_code, $crypto->abbr);
+                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->getMeta('factor'), $currency->iso_code, $crypto->abbr);
                 if ($cryptoAmount == $invoice->details->getAmount()) {
                     $this->invoice_redirect($invoice);
                 }
             }
         }
 
-        $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->getFactor());
+        $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->getMeta('factor'));
         $invoice
             ->order($cart->id)
-            ->lifetime($this->module->settings->getTimeout());
+            ->lifetime($this->module->settings->getMeta('timeout'));
         
         // Set invoice secret & callback URL
         $invoice->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart->id . $cart->secure_key)], true));
@@ -65,7 +65,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         $invoice->userData($userData);
 
         try {
-            $invoice->create($this->module->settings->getAccount());
+            $invoice->create($this->module->settings->account);
         }
         catch (Exception $e) {
             $this->module->log('warning', $e->getMessage());
