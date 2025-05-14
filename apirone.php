@@ -22,7 +22,7 @@ class Apirone extends PaymentModule
     public function __construct()
     {
         $this->name = 'apirone';
-        $this->version = '1.0.2';
+        $this->version = '1.0.3';
         $this->tab = 'payments_gateways';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
