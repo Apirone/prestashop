@@ -652,6 +652,10 @@ class Apirone extends PaymentModule
         if ($settings->getMeta('processingFee') == null) {
             $settings->addMeta('processingFee', 'percentage');
         }
+        $settings->addMeta('timeout', 1800);
+        $settings->addMeta('factor', 1);
+        $settings->addMeta('logo', true);
+        $settings->addMeta('debug', false);
 
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
 
