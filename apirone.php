@@ -36,7 +36,7 @@ class Apirone extends PaymentModule
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
 
         $this->settings = $this->getSettings();
-        $this->logger = $this->logger_callback($this->settings->getMeta('debug') ? FileLogger::DEBUG : FileLogger::INFO);
+        $this->logger = $this->logger_callback($this->settings->getMeta('debug') ? FileLogger::INFO : FileLogger::ERROR);
 
         Invoice::logger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
