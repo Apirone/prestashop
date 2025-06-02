@@ -6,6 +6,7 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
+use Apirone\API\Endpoints\Account;
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
@@ -93,9 +94,14 @@ class Apirone extends PaymentModule
     public function getContent()
     {
         $message = '';
-        // Save settings if sent
-        $this->settings->loadCurrencies();
+        try {
+            $this->settings->loadCurrencies();
+        }
+        catch (Exception $e) {
+            $this->context->controller->errors[] = $this->l($e->getMessage());
+        }
 
+        // Save settings if sent
         if (Tools::isSubmit('submitApironeSettings')) {
             $errors = [];
             $values = $this->getSettingsFormValues();
@@ -579,6 +585,15 @@ class Apirone extends PaymentModule
 
     public function getAvailableCryptos(): array
     {
+        // Do not show payment method for invalid account
+        try {
+            Account::init($this->settings->account)->balance();
+        }
+        catch (Exception $e) {
+            $this->log('error', $this->l('Can`t get available cryptos for currency selector: ') . $e->getMessage());
+            return [];
+        }
+
         $coins = [];
         $networks = $this->settings->networks();
         $testCustomer = $this->settings->getMeta('testCustomer');
@@ -628,7 +643,6 @@ class Apirone extends PaymentModule
         $invoices = [];
         $order = new Order($id);
         if (Validate::isLoadedObject($order)) {
-            // $invoices = Invoice::getOrderInvoices($order->id_cart);
             $invoices = Invoice::getByOrder($order->id_cart);
         }
 
@@ -843,7 +857,7 @@ class Apirone extends PaymentModule
     }
 }
 function pa($mixed, $title = '')
-{   
+{
     $title .= ($title) ? '<br/>' : '';
     echo '<pre>' . $title;
     print_r($mixed);
