@@ -79,7 +79,6 @@ copy:
 	cp -rf ./controllers ./apirone/controllers
 	cp -rf ./translations ./apirone/translations
 	cp -rf ./upgrade ./apirone/upgrade
-	cp -rf ./upgrade ./apirone/upgrade
 	cp -rf ./views ./apirone/views
 	cp -f ./apirone.php ./apirone/apirone.php
 	cp -f ./config.xml ./apirone/config.xml
