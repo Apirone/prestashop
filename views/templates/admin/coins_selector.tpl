@@ -5,7 +5,7 @@
         <label for="{$coin->abbr}_active">
         <input class="active-coin" type="checkbox" name="{$coin->abbr}_active" id="{$coin->abbr}_active" {(isset($values[$coin_active]) && $values[$coin_active] == 'on') ? 'checked' : '' } />
         <i class="icon-coin {$coin->abbr|replace:'@':'_'}"></i>
-        <span>{strtoupper($coin->abbr)}</span>
+        <span>{strtoupper($coin->alias)}</span>
         </label>
     </div>
 {/foreach}
