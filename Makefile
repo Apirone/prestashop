@@ -33,8 +33,9 @@ zip: ## Create artifact archive
 	else \
 		rm -rf ./apirone.zip; \
 		zip -r apirone.zip ./apirone; \
+		rm -rf ./apirone; \
 	fi
-build-zip: build zip clean ## Clean, build and zip
+build-zip: build zip ## Clean, build and zip
 
 clear: clean ## see clean
 
