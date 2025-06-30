@@ -855,7 +855,74 @@ class Apirone extends PaymentModule
         }
 
     }
+
+    protected function apironePaymentProcess(Invoice $invoice)
+    {
+        if (!in_array($invoice->status, ['paid', 'overpaid', 'completed'], true)) {
+            return;
+        }
+
+        $cart = new Cart($invoice->order);
+        $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
+
+        // Create order
+        if (!$cart->orderExists() && in_array($invoice->status, ['paid', 'overpaid','expired'], true)) {
+            $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
+            try {
+                $this->module->validateOrder(
+                    (int) $cart->id,
+                    (int) $order_status,
+                    $cart->getOrderTotal(),
+                    $this->module->displayName,
+                    null,
+                    [],
+                    (int) $cart->id_currency,
+                    false,
+                    $cart->secure_key
+                );
+            }
+            catch (Exception $e) {
+                $this->module->log('error', 'Can\'t create an order.', [$e->getMessage()]);
+                $message = 'Can\'t create an order.';
+                Utils::sendJson($message, 400);
+            }
+
+            $order = Order::getByCartId($cart->id);
+            $invoice->setMeta('order_status', (int) $order->getCurrentState());
+
+            return;
+        }
+
+        // Update
+        if ($cart->orderExists() && $invoice->status == 'completed') {
+            $order = Order::getByCartId($cart->id);
+
+            $current_status = (int) $order->getCurrentState();
+            if ($invoice->getMeta('order_status') !== $current_status) {
+                $this->module->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
+
+                return;
+            }
+            $new_status = (int) Configuration::get('APIRONE_OC_PAYMENT_COMPLETED');
+
+            // Prevent duplicate state entry
+            if ($current_status !== $new_status
+                && false === (bool) $order->hasBeenShipped()
+                && false === (bool) $order->hasBeenDelivered()
+            ) {
+                $orderHistory = new OrderHistory();
+                $orderHistory->id_order = $order->id;
+                $orderHistory->changeIdOrderState(
+                    $new_status,
+                    $order->id
+                );
+                $orderHistory->add();
+                $invoice->setMeta('order_status', $new_status);
+            }
+        }
+    }
 }
+
 function pa($mixed, $title = '')
 {
     $title .= ($title) ? '<br/>' : '';
