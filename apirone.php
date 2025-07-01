@@ -869,11 +869,11 @@ class Apirone extends PaymentModule
         if (!$cart->orderExists() && in_array($invoice->status, ['paid', 'overpaid','expired'], true)) {
             $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
             try {
-                $this->module->validateOrder(
+                $this->validateOrder(
                     (int) $cart->id,
                     (int) $order_status,
                     $cart->getOrderTotal(),
-                    $this->module->displayName,
+                    $this->displayName,
                     null,
                     [],
                     (int) $cart->id_currency,
@@ -882,7 +882,7 @@ class Apirone extends PaymentModule
                 );
             }
             catch (Exception $e) {
-                $this->module->log('error', 'Can\'t create an order.', [$e->getMessage()]);
+                $this->log('error', 'Can\'t create an order.', [$e->getMessage()]);
                 $message = 'Can\'t create an order.';
                 Utils::sendJson($message, 400);
             }
@@ -899,7 +899,7 @@ class Apirone extends PaymentModule
 
             $current_status = (int) $order->getCurrentState();
             if ($invoice->getMeta('order_status') !== $current_status) {
-                $this->module->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
+                $this->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
 
                 return;
             }
