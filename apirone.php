@@ -856,7 +856,7 @@ class Apirone extends PaymentModule
 
     }
 
-    protected function apironePaymentProcess(Invoice $invoice)
+    public function apironePaymentProcess(Invoice $invoice)
     {
         if (!in_array($invoice->status, ['paid', 'overpaid', 'completed'], true)) {
             return;

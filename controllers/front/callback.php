@@ -14,7 +14,7 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
 
     protected function handlerWrapper() {
         $handler = function(Invoice $invoice) {
-            $this->apironePaymentProcess($invoice);
+            $this->module->apironePaymentProcess($invoice);
         };
 
         return $handler;
