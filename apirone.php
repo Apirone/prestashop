@@ -477,7 +477,8 @@ class Apirone extends PaymentModule
 
         foreach ($this->getAvailableCryptos() as $currency) {
             try {
-                $currency->amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
+                $amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
+                $currency->amount = Utils::humanizeAmount(Utils::cur2min($amount, $currency->unitsFactor), $currency);
                 $coins[] = $currency;
             }
             catch(Exception $e) {
@@ -538,7 +539,7 @@ class Apirone extends PaymentModule
         }
         \Context::getContext()->smarty->assign('invoices', $listItems);
 
-        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvocesDetails.tpl');
+        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvoicesDetails.tpl');
 
     }
 
