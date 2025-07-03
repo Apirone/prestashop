@@ -8,7 +8,7 @@ class ApironeLinkbackModuleFrontController extends ModuleFrontController
         parent::initContent();
 
         $redirect = __PS_BASE_URI__;
-        $invoice = Invoice::getInvoice(Tools::getValue('invoice', null));
+        $invoice = Invoice::get(Tools::getValue('invoice', null));
 
         if (property_exists($invoice, 'order') && $invoice->order !== 0) {
             $cart = new Cart($invoice->order);

@@ -63,6 +63,25 @@ This module is released under the [MIT][MIT] license
 
 ## Changelog
 
-### Version 1.0.0 ###
+### Version 1.0.3
+
+* SDK updated
+* Refactoring the use of deprecated SDK methods
+* Settings storege updated
+* Added Ethereum network & tokens
+
+### Version 1.0.2
+
+* Enabled display of test networks for all (uses * as a wildcard)
+* Updated Mkefile & files mode
+* Relative path bug fixed
+* Minor & misprint fixes
+* Vendor update
+
+### Version 1.0.1
+
+* Vendor update
+
+### Version 1.0.0
 
 * Plugin first version is released.

@@ -33,8 +33,9 @@ zip: ## Create artifact archive
 	else \
 		rm -rf ./apirone.zip; \
 		zip -r apirone.zip ./apirone; \
+		rm -rf ./apirone; \
 	fi
-build-zip: build zip clean ## Clean, build and zip
+build-zip: build zip ## Clean, build and zip
 
 clear: clean ## see clean
 
@@ -54,8 +55,12 @@ targets:
 
 init: vendor assets ## Install vendor & update assets
 
-vendor: ## Install vendor dependencies
-	composer install --ignore-platform-reqs
+vendor: ## Install or update vendor dependencies
+	@if [ ! -d './vendor' ]; then \
+		composer install --ignore-platform-reqs; \
+	else \
+		composer update --ignore-platform-reqs; \
+	fi
 
 assets: ## Update assets from apirone-sdk-php library
 	rm -rf ./views/js/*.js
@@ -74,7 +79,6 @@ copy:
 	cp -rf ./classes ./apirone/classes
 	cp -rf ./controllers ./apirone/controllers
 	cp -rf ./translations ./apirone/translations
-	cp -rf ./upgrade ./apirone/upgrade
 	cp -rf ./upgrade ./apirone/upgrade
 	cp -rf ./views ./apirone/views
 	cp -f ./apirone.php ./apirone/apirone.php

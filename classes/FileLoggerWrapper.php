@@ -1,5 +1,7 @@
 <?php
 
+require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerFormatter.php');
+
 use Apirone\API\Log\LogLevel;
 
 class FileLoggerWrapper
@@ -13,7 +15,7 @@ class FileLoggerWrapper
 
     public function __construct($log_level)
     {
-        $this->logger = new FileLogger($log_level);
+        $this->logger = new FileLoggerFormatter($log_level);
         $this->logger->setFilename(_PS_ROOT_DIR_ . $this->logFilename());
 
         return $this;
@@ -26,30 +28,26 @@ class FileLoggerWrapper
             case LogLevel::CRITICAL:
             case LogLevel::ALERT:
             case LogLevel::ERROR:
-                $ps_error_level = self::ERROR;
+                $ps_log_level = self::ERROR;
                 break;
             case LogLevel::WARNING:
-                $ps_error_level = self::WARNING;
+                $ps_log_level = self::WARNING;
                 break;
             case LogLevel::NOTICE:
             case LogLevel::INFO:
-                $ps_error_level = self::INFO;
+                $ps_log_level = self::INFO;
                 break;
             case LogLevel::DEBUG:
             default:
-                $ps_error_level = self::DEBUG;
+                $ps_log_level = self::DEBUG;
                 break;
         }
 
-        $replace = $this->prepareContext($context);
-
         $message = strip_tags($message);
 
-        if (!empty($replace)) {
-            $message = $this->prepareMessage($replace, $message);
-        }
+        $context = ($context) ? ' CONTEXT: ' . json_encode($context) : '';
 
-        $this->logger->log($message, $ps_error_level);
+        $this->logger->log(trim($message . $context), $ps_log_level);
 
     }
 
@@ -91,30 +89,6 @@ class FileLoggerWrapper
     public function debug($message, array $context = [])
     {
         $this->log(LogLevel::DEBUG, $message, $context);
-    }
-
-    private function prepareMessage($replace, $message)
-    {
-        foreach ($replace as $key => $object) {
-            $label = trim($key, "{}");
-            $message .= " \n{$label}: {$object}";
-        }
-
-        return $message;
-    }
-
-    private function prepareContext($context)
-    {
-        if (!$context) {
-            return;
-        }
-
-        $replace = array();
-        foreach ($context as $key => $value) {
-            $replace['{'.$key.'}'] = (is_array($value) || is_object($value)) ? json_encode($value, JSON_PRETTY_PRINT) : $value;
-        }
-
-        return $replace;
     }
 
     private function logFilename() {

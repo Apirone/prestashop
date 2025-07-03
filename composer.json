@@ -2,7 +2,7 @@
     "name": "apirone/prestashop",
     "description": "Prestashop payment gateway",
     "require": {
-        "apirone/apirone-sdk-php": "^1.0"
+        "apirone/apirone-sdk-php": "^1.2"
     },
     "license": "MIT",
     "authors": [

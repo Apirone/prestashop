@@ -19,9 +19,38 @@
 .icon-coin.trx, .icon-coin.ttrx {
   background-image: url("../img/trx.svg"), url("../img/aprn.svg");
 }
-.icon-coin.usdc-trx, .icon-coin.usdc-ttrx {
+.icon-coin.usdc_trx, .icon-coin.usdc_ttrx {
   background-image: url("../img/usdc_trx.svg"), url("../img/aprn.svg");
 }
-.icon-coin.tbch, .icon-coin.tbtc, .icon-coin.tdoge, .icon-coin.tltc, .icon-coin.ttrx, .icon-coin.usdc-ttrx {
+.icon-coin.usdt_trx, .icon-coin.usdt_ttrx {
+  background-image: url("../img/usdt_trx.svg"), url("../img/aprn.svg");
+}
+.icon-coin.eth, .icon-coin.teth {
+  background-image: url("../img/eth.svg"), url("../img/aprn.svg");
+}
+.icon-coin.usdc_eth, .icon-coin.usdc_teth {
+  background-image: url("../img/usdc_eth.svg"), url("../img/aprn.svg");
+}
+.icon-coin.usdt_eth, .icon-coin.usdt_teth {
+  background-image: url("../img/usdt_eth.svg"), url("../img/aprn.svg");
+}
+.icon-coin.tbch, .icon-coin.tbtc, .icon-coin.tdoge, .icon-coin.tltc,
+.icon-coin.ttrx, .icon-coin.usdc-ttrx, .icon-coin.usdt-ttrx,
+.icon-coin.teth, .icon-coin.usdc-teth, .icon-coin.usdt-teth {
   filter: grayscale(1);
+}
+
+.coins-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    margin-left: 2rem;
+}
+.coin-block, .coin-block label {
+    display: flex;
+    align-items: center;
+    margin-right: 0.75rem;
+}
+.coin-block i, .coin-block input[type=checkbox], .coin-block span {
+    margin: 0 .5rem 0 0;
 }

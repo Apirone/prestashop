@@ -29,43 +29,43 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
 
         $currency = $this->context->currency;
 
+        // Create an apirone invoice
+        $cart_total = $cart->getOrderTotal();
+
         // Check if invoice exist, not expired & has same crypto
-        $cart_invoices = Invoice::getOrderInvoices($cart->id);
+        $cart_invoices = Invoice::getByOrder($cart->id);
         if (!empty($cart_invoices)) {
             $invoice = $cart_invoices[0];
             $invoice->update();
             if ($invoice->status !== 'expired' && $invoice->details->currency == $crypto->abbr) {
-                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->getFactor(), $currency->iso_code, $crypto->abbr);
+                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->getMeta('factor'), $currency->iso_code, $crypto->abbr);
                 if ($cryptoAmount == $invoice->details->getAmount()) {
                     $this->invoice_redirect($invoice);
                 }
             }
         }
 
-        // Create an apirone invoice
-        $cart_total = $cart->getOrderTotal();
-
-        $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->getFactor());
+        $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->getMeta('factor'));
         $invoice
             ->order($cart->id)
-            ->lifetime($this->module->settings->getTimeout());
+            ->lifetime($this->module->settings->getMeta('timeout'));
         
         // Set invoice secret & callback URL
         $invoice->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart->id . $cart->secure_key)], true));
         $invoice->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true));
 
         $userData = UserData::init();
-        $merchant = $this->module->settings->getMerchant() ?? Configuration::get('PS_SHOP_NAME');
+        $merchant = $this->module->settings->getMeta('merchant') ?? Configuration::get('PS_SHOP_NAME');
 
-        $userData->setMerchant($merchant);
-        $userData->setUrl(Context::getContext()->shop->getBaseURL(true));
+        $userData->merchant($merchant);
+        $userData->url(Context::getContext()->shop->getBaseURL());
 
-        $userData->setPrice($cart_total . ' ' . strtoupper($currency->iso_code));
+        $userData->price($cart_total . ' ' . strtoupper($currency->iso_code));
 
         $invoice->userData($userData);
 
         try {
-            $invoice->create($this->module->settings->getAccount());
+            $invoice->create($this->module->settings->account);
         }
         catch (Exception $e) {
             $this->module->log('warning', $e->getMessage());

@@ -8,11 +8,14 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
     public function postProcess()
     {
         $invoice = $this->setRenderParams();
+        $this->module->apironePaymentProcess($invoice);
 
         if (Render::isAjaxRequest()) {
             return Invoice::renderAjax();
         }
 
+        // Update invoice on page load
+        $invoice->update();
         $this->context->smarty->assign(['invoice' => Invoice::renderLoader($invoice)]);
 
         return $this->setTemplate('module:apirone/views/templates/front/invoice.tpl');
@@ -31,7 +34,7 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
                 $id = property_exists($params, 'invoice') ? (string) $params->invoice : null;
             }
         }
-        $invoice = Invoice::getInvoice($id);
+        $invoice = Invoice::get($id);
 
         // Create backlink
         $backlink = '';
@@ -43,6 +46,7 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
         // Set render params
         Render::$idParam = 'id';
         Render::$backlink = $backlink;
+        Render::$logo = Invoice::$settings->getMeta('logo');
 
         return $invoice;
     }

@@ -6,7 +6,7 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
-use Apirone\API\Http\Request;
+use Apirone\API\Endpoints\Account;
 use Apirone\API\Log\LoggerWrapper;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
@@ -23,8 +23,8 @@ class Apirone extends PaymentModule
     public function __construct()
     {
         $this->name = 'apirone';
+        $this->version = '1.0.3';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.2';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
         $this->bootstrap = true;
@@ -37,11 +37,12 @@ class Apirone extends PaymentModule
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
 
         $this->settings = $this->getSettings();
-        $this->logger = $this->logger_callback($this->settings->getDebug() ? FileLogger::DEBUG : FileLogger::INFO);
+        $this->logger = $this->logger_callback($this->settings->getMeta('debug') ? FileLogger::INFO : FileLogger::ERROR);
 
-        Invoice::setLogger($this->logger);
+        Invoice::logger($this->logger);
         Invoice::db(static::db_callback(), _DB_PREFIX_);
         Invoice::settings($this->settings);
+
     }
 
     public function install()
@@ -63,7 +64,7 @@ class Apirone extends PaymentModule
             $this->registerHooks();
         }
 
-        // Add datatable
+        // Add data table
         if (is_null($this->warning)) {
             $this->createApironeTable();
         }
@@ -93,23 +94,29 @@ class Apirone extends PaymentModule
     public function getContent()
     {
         $message = '';
+        try {
+            $this->settings->loadCurrencies();
+        }
+        catch (Exception $e) {
+            $this->context->controller->errors[] = $this->l($e->getMessage());
+        }
+
         // Save settings if sent
         if (Tools::isSubmit('submitApironeSettings')) {
             $errors = [];
             $values = $this->getSettingsFormValues();
 
-            $this->settings->setMerchant($values['merchant']);
-            $this->settings->setExtra('testCustomer', $values['testCustomer']);
-            $this->settings->setBacklink($values['backlink']);
-            $this->settings->setLogo($values['logo']);
-            $this->settings->setDebug($values['debug']);
+            $this->settings->addMeta('merchant', $values['merchant']);
+            $this->settings->addMeta('testCustomer', $values['testCustomer']);
+            $this->settings->addMeta('logo', $values['logo']);
+            $this->settings->addMeta('debug', $values['debug']);
 
             // Validate timeout
             if ($values['timeout'] == 0) {
                 $this->context->controller->errors[] = $this->l("'Payment timeout' must be positive integer");
             }
             else {
-                $this->settings->setTimeout($values['timeout']);
+                $this->settings->addMeta('timeout', $values['timeout']);
             }
 
             // Validate factor
@@ -117,23 +124,23 @@ class Apirone extends PaymentModule
                 $this->context->controller->errors[] = $this->l("'Price adjustment factor' must be positive float");
             }
             else {
-                $this->settings->setFactor($values['factor']);
+                $this->settings->addMeta('factor', $values['factor']);
             }
 
             // Save processing fee plan
-            if ($this->settings->getExtra('processingFee') !== $values['processingFee']) {
+            if ($this->settings->getMeta('processingFee') !== $values['processingFee']) {
                 if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
-                    $this->settings->setExtra('processingFee', $values['processingFee']);
+                    $this->settings->addMeta('processingFee', $values['processingFee']);
 
-                    foreach ($this->settings->getCurrencies() as $item) {
-                        $this->settings->getCurrency($item->abbr)->setPolicy($values['processingFee']);
+                    foreach ($this->settings->currencies as $network) {
+                        $this->settings->currency($network->abbr)->policy($values['processingFee']);
                     }
                     $this->settings->saveCurrencies();
 
                     // Check for errors
-                    foreach ($this->settings->getCurrencies() as $item) {
-                        if ($item->hasError()) {
-                            $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
+                    foreach ($this->settings->currencies as $network) {
+                        if ($network->hasError()) {
+                            $this->context->controller->errors[] = $network->name . ' has error: ' . $network->error;
                         }
                     }
                 }
@@ -151,18 +158,26 @@ class Apirone extends PaymentModule
         // Save currencies if sent
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
-            $policy = $this->settings->getExtra('processingFee') ?? 'percentage';
 
-            foreach ($this->settings->getCurrencies() as $item) {
-                // $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy('percentage');
-                $this->settings->getCurrency($item->abbr)->setAddress($values[$item->abbr])->setPolicy($policy);
+            foreach ($this->settings->networks() as $network) {
+                $this->settings->currency($network->abbr)->address($values[$network->abbr]);
+                if ($network->isNetwork()) {
+                    $tokens = $network->getTokens($this->settings->currencies);
+                    if ($tokens) {
+                        $tokens = array_merge([$network], $tokens);
+                        foreach ($tokens as $token) {
+                            $this->settings->currency($token->abbr)->address($network->address);
+                            $this->settings->addMeta($token->abbr, pSQL(Tools::getValue($token->abbr . '_active', '')));
+                        }
+                    }
+                }
             }
 
             $this->settings->saveCurrencies();
 
-            foreach ($this->settings->getCurrencies() as $item) {
-                if ($item->hasError()) {
-                    $this->context->controller->errors[] = $item->name . ' has error: ' . $item->getError();
+            foreach ($this->settings->currencies as $network) {
+                if ($network->hasError()) {
+                    $this->context->controller->errors[] = $network->name . ' has error: ' . $network->error;
                 }
             }
 
@@ -191,13 +206,13 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('message', $message);
         $this->context->smarty->assign('settings', $this->renderSettingsForm());
         $this->context->smarty->assign('currencies', $this->renderCurrenciesForm());
-        $this->context->smarty->assign('apirone_account', $this->settings->getAccount());
+        $this->context->smarty->assign('apirone_account', $this->settings->account);
         $this->context->smarty->assign('plugin_version', $this->version);
         $this->context->smarty->assign('ps_version', _PS_VERSION_);
         $this->context->smarty->assign('php_version', phpversion());
         $this->context->smarty->assign('releases_page', 'https://github.com/apirone/prestashop/releases');
 
-        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/apirone_admin.tpl');
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/settings.tpl');
     }
 
     /**
@@ -319,30 +334,54 @@ class Apirone extends PaymentModule
         return $helper->generateForm([$form_fields]);
     }
 
+    protected function renderNetworkCoins ($coins)
+    {
+        $values = [];
+        foreach ($coins as $coin) {
+            $values[$coin->abbr . '_active'] = $this->settings->getMeta($coin->abbr);
+        }
+        $this->context->smarty->assign('values', $values);
+        $this->context->smarty->assign('coins', $coins);
+
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/coins_selector.tpl');
+
+    }
+
     /**
      * Generate Currencies form
      */
     protected function renderCurrenciesForm()
     {
-        $currencies = [];
+        $form_data = [];
 
-        foreach ($this->settings->getCurrencies() as $item) {
-            $hint = ($item->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
-            $currency = [
+        foreach ($this->settings->networks as $network) {
+            $hint = ($network->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
+            $tokens = ($network->getTokens($this->settings->currencies));
+            $item = [
                 'type' => 'text',
-                'label' => $item->name,
-                'name' => $item->abbr,
+                'label' => $network->name . ((!empty($tokens)) ? ' ' . $this->l('Blockchain') : ''),
+                'name' => $network->abbr,
                 'hint' => $hint,
-                'values' => 'address ' . $item->abbr,
-                'prefix' => '<i class="icon-coin ' . str_replace('@', '_', $item->abbr) . '"></i>',
+                'values' => $network->abbr,
+                'prefix' => '<i class="icon-coin ' . str_replace('@', '_', $network->abbr) . '"></i>',
             ];
-            if ($item->isTestnet()) {
-                $currency['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
+            if ($network->isTestnet()) {
+                $item['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
             }
-            $currencies[] = $currency;
+            if (!empty($tokens)) {
+                // Add coins
+                $coins = [];
+                $coins[] = $network;
+                foreach($tokens as $token) {
+                    $coins[] = $token;
+                }
+
+                $item['desc'] = $this->renderNetworkCoins($coins);
+            }
+            $form_data[] = $item;
         }
 
-        if (empty($currencies)) {
+        if (empty($form_data)) {
             $this->context->controller->errors[] = 'Can`t get currencies list from apirone gateway. Please, try later.';
         }
 
@@ -353,7 +392,7 @@ class Apirone extends PaymentModule
                     'icon' => 'icon-bitcoin',
                 ],
                 'class' => 'class',
-                'input' => $currencies,
+                'input' => $form_data,
                 'submit' => [
                     'name' => 'submitApironeCurrencies',
                     'title' => $this->trans('Save', [], 'Admin.Actions'),
@@ -391,14 +430,13 @@ class Apirone extends PaymentModule
     {
         $settings = $this->getSettings();
         $values = [];
-        $values['merchant'] = pSQL(Tools::getValue('merchant', $settings->getMerchant()));
-        $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getTimeout()));
-        $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getFactor()));
-        $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getExtra('testCustomer')));
-        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getExtra('processingFee')));
-        $values['backlink'] = pSQL(Tools::getValue('backlink', $settings->getBacklink()));
-        $values['logo'] = pSQL(Tools::getValue('logo', $settings->getLogo()));
-        $values['debug'] = pSQL(Tools::getValue('debug', $settings->getDebug()));
+        $values['merchant'] = pSQL(Tools::getValue('merchant', $settings->getMeta('merchant')));
+        $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getMeta('timeout')));
+        $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getMeta('factor')));
+        $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getMeta('testCustomer')));
+        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getMeta('processingFee')));
+        $values['logo'] = pSQL(Tools::getValue('logo', $settings->getMeta('logo')));
+        $values['debug'] = pSQL(Tools::getValue('debug', $settings->getMeta('debug')));
 
         return $values;
     }
@@ -408,9 +446,9 @@ class Apirone extends PaymentModule
      */
     protected function getCurrenciesFormValues()
     {
-        $currencies = $this->getSettings()->getCurrencies();
+        $networks = $this->getSettings()->networks();
         $values = [];
-        foreach ($currencies as $item) {
+        foreach ($networks as $item) {
             $values[$item->abbr] = pSQL(Tools::getValue($item->abbr, $item->getAddress()));
         }
 
@@ -435,12 +473,13 @@ class Apirone extends PaymentModule
 
         $coins = [];
         $cart = $params['cart'];
-        $currency = $this->getCartCurrency($cart);
+        $fiat = $this->getCartCurrency($cart);
 
-        foreach ($this->getAvailableCryptos() as $item) {
+        foreach ($this->getAvailableCryptos() as $currency) {
             try {
-                $item->amount = utils::exp2dec(Utils::fiat2crypto($cart->getCartTotalPrice(), $currency['iso_code'], $item->abbr));
-                $coins[] = $item;
+                $amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
+                $currency->amount = Utils::humanizeAmount(Utils::cur2min($amount, $currency->unitsFactor), $currency);
+                $coins[] = $currency;
             }
             catch(Exception $e) {
                 LoggerWrapper::error($e->getMessage());
@@ -470,27 +509,27 @@ class Apirone extends PaymentModule
 
         $order = new Order($params['id_order']);
         $listItems = [];
-        $invoices = Invoice::getOrderInvoices($order->id_cart);
+        $invoices = Invoice::getByOrder($order->id_cart);
         foreach ($invoices as $invoice) {
             $details = $invoice->details;
-            $currency = $this->settings->getCurrency($details->currency);
+            $currency = $this->settings->currency($details->currency);
 
             $itemInvoice = new stdClass();
             $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created . 'Z'));
             $itemInvoice->invoice = $details->invoice;
             $itemInvoice->address = $details->address;
             $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
-            $itemInvoice->amount = Utils::exp2dec(Utils::min2cur($details->amount, $currency->getUnitsFactor())) . ' ' . strtoupper($details->currency);
+            $itemInvoice->amount = Utils::humanizeAmount($details->amount, $currency) . ' ' . strtoupper($details->currency);
             $itemInvoice->status = $details->status;
             $itemInvoice->history = [];
 
             foreach ($details->history as $item) {
                 $itemHistory = new stdClass();
-                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->getDate() . 'Z'));
-                $itemHistory->status = $item->getStatus();
-                if ($item->getAmount() !== null) {
-                    $itemHistory->amount = Utils::exp2dec($item->getAmount() * $currency->getUnitsFactor());
-                    $itemHistory->txid = Utils::getTransactionLink($currency, $item->getTxid());
+                $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->date . 'Z'));
+                $itemHistory->status = $item->status;
+                if ($item->amount !== null) {
+                    $itemHistory->amount = Utils::humanizeAmount($item->amount, $currency);
+                    $itemHistory->txid = Utils::getTransactionLink($currency, $item->txid);
                 }
                 $itemInvoice->history[] = $itemHistory;
             }
@@ -500,7 +539,7 @@ class Apirone extends PaymentModule
         }
         \Context::getContext()->smarty->assign('invoices', $listItems);
 
-        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvocesDetails.tpl');
+        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvoicesDetails.tpl');
 
     }
 
@@ -512,7 +551,7 @@ class Apirone extends PaymentModule
             return;
         }
 
-        $this->context->controller->addCSS('modules/' . $this->name . '/views/css/back.css');
+        $this->context->controller->addCSS(__PS_BASE_URI__ . '/modules/' . $this->name . '/views/css/back.css');
     }
 
     public function checkCurrency($cart)
@@ -547,23 +586,43 @@ class Apirone extends PaymentModule
 
     public function getAvailableCryptos(): array
     {
-        $currencies = [];
-        $testCustomer = $this->settings->getExtra('testCustomer');
+        // Do not show payment method for invalid account
+        try {
+            Account::init($this->settings->account)->balance();
+        }
+        catch (Exception $e) {
+            $this->log('error', $this->l('Can`t get available cryptos for currency selector: ') . $e->getMessage());
+            return [];
+        }
 
-        foreach ($this->settings->getCurrencies() as $item) {
-            if ($item->getAddress() !== null && !$item->hasError()) {
-                if ($item->isTestnet()) {
+        $coins = [];
+        $networks = $this->settings->networks();
+        $testCustomer = $this->settings->getMeta('testCustomer');
+
+        foreach ($networks as $network) {
+            if ($network->getAddress() !== null && !$network->hasError()) {
+                if ($network->isTestnet()) {
                     if ($testCustomer == $this->context->customer->email || $testCustomer == '*') {
-                        $currencies[] = $item;
+                        $coins[] = $network;
                     }
                 }
                 else {
-                    $currencies[] = $item;
+                    $tokens = $network->getTokens($this->settings->currencies);
+                    if ($tokens) {
+                        $tokens = array_merge([$network], $tokens);
+                        foreach ($tokens as $token) {
+                            if ($this->settings->getMeta($token->abbr) == 'on') {
+                                $coins[] = $token;
+                            }
+                        }
+                    }
+                    else {
+                        $coins[] = $network;
+                    }
                 }
             }
         }
-
-        return $currencies;
+        return $coins;
     }
 
     public function getCrypto()
@@ -585,26 +644,51 @@ class Apirone extends PaymentModule
         $invoices = [];
         $order = new Order($id);
         if (Validate::isLoadedObject($order)) {
-            $invoices = Invoice::getOrderInvoices($order->id_cart);
+            $invoices = Invoice::getByOrder($order->id_cart);
         }
 
         return $invoices;
     }
     protected function getSettings(): Settings
     {
-        $settings = Configuration::get('APIRONE_SETTINGS');
+        $json = Configuration::get('APIRONE_SETTINGS');
 
-        if ($settings) {
-            return Settings::fromJson($settings);
+        if ($json) {
+            $settings = Settings::fromJson($json);
+            if (empty((array)$settings->meta)) {
+                return $this->updateSettings($settings);
+            }
+
+            return $settings;
         }
 
+        // Create new instance
         $settings = Settings::init()->createAccount();
-        if ($settings->getExtra('processingFee') == null) {
-            $settings->setExtra('processingFee', 'percentage');
+        if ($settings->getMeta('processingFee') == null) {
+            $settings->addMeta('processingFee', 'percentage');
         }
+        $settings->addMeta('timeout', 1800);
+        $settings->addMeta('factor', 1);
+        $settings->addMeta('logo', true);
+        $settings->addMeta('debug', false);
 
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
 
+        return $settings;
+    }
+
+    private function updateSettings($settings)
+    {
+        $settings->addMeta('merchant', $settings->merchant);
+        $settings->addMeta('timeout', $settings->timeout);
+        $settings->addMeta('factor', $settings->factor);
+        $settings->addMeta('logo', $settings->logo);
+        $settings->addMeta('debug', $settings->debug);
+        foreach((array) $settings->extra as $key => $val) {
+            $settings->addMeta($key, $val);
+        };
+
+        Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
         return $settings;
     }
 
@@ -772,9 +856,77 @@ class Apirone extends PaymentModule
         }
 
     }
+
+    public function apironePaymentProcess(Invoice $invoice)
+    {
+        if (!in_array($invoice->status, ['paid', 'overpaid', 'completed'], true)) {
+            return;
+        }
+
+        $cart = new Cart($invoice->order);
+        $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
+
+        // Create order
+        if (!$cart->orderExists() && in_array($invoice->status, ['paid', 'overpaid','expired'], true)) {
+            $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
+            try {
+                $this->validateOrder(
+                    (int) $cart->id,
+                    (int) $order_status,
+                    $cart->getOrderTotal(),
+                    $this->displayName,
+                    null,
+                    [],
+                    (int) $cart->id_currency,
+                    false,
+                    $cart->secure_key
+                );
+            }
+            catch (Exception $e) {
+                $this->log('error', 'Can\'t create an order.', [$e->getMessage()]);
+                $message = 'Can\'t create an order.';
+                Utils::sendJson($message, 400);
+            }
+
+            $order = Order::getByCartId($cart->id);
+            $invoice->setMeta('order_status', (int) $order->getCurrentState());
+
+            return;
+        }
+
+        // Update
+        if ($cart->orderExists() && $invoice->status == 'completed') {
+            $order = Order::getByCartId($cart->id);
+
+            $current_status = (int) $order->getCurrentState();
+            if ($invoice->getMeta('order_status') !== $current_status) {
+                $this->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
+
+                return;
+            }
+            $new_status = (int) Configuration::get('APIRONE_OC_PAYMENT_COMPLETED');
+
+            // Prevent duplicate state entry
+            if ($current_status !== $new_status
+                && false === (bool) $order->hasBeenShipped()
+                && false === (bool) $order->hasBeenDelivered()
+            ) {
+                $orderHistory = new OrderHistory();
+                $orderHistory->id_order = $order->id;
+                $orderHistory->changeIdOrderState(
+                    $new_status,
+                    $order->id
+                );
+                $orderHistory->add();
+                $invoice->setMeta('order_status', $new_status);
+            }
+        }
+    }
 }
+
 function pa($mixed, $title = '')
 {
+    $title .= ($title) ? '<br/>' : '';
     echo '<pre>' . $title;
     print_r($mixed);
     echo '</pre>';
