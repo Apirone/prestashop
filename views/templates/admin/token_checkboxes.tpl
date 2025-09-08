@@ -4,7 +4,7 @@
     <div class="coin-block">
         <label for="{$coin->abbr}_active">
         <input class="active-coin" type="checkbox" name="{$coin->abbr}_active" id="{$coin->abbr}_active" {(isset($values[$coin_active]) && $values[$coin_active] == 'on') ? 'checked' : '' } />
-        <i class="icon-coin {$coin->abbr|replace:'@':'_'}"></i>
+        <i class="icon-coin {$coin->abbr|replace:'@':'-'}"></i>
         <span>{strtoupper($coin->alias)}</span>
         </label>
     </div>

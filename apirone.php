@@ -23,7 +23,7 @@ class Apirone extends PaymentModule
     public function __construct()
     {
         $this->name = 'apirone';
-        $this->version = '1.0.3';
+        $this->version = '1.0.4';
         $this->tab = 'payments_gateways';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
@@ -343,7 +343,7 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('values', $values);
         $this->context->smarty->assign('coins', $coins);
 
-        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/coins_selector.tpl');
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/token_checkboxes.tpl');
 
     }
 
@@ -355,21 +355,18 @@ class Apirone extends PaymentModule
         $form_data = [];
 
         foreach ($this->settings->networks as $network) {
+            $testnet_warning = $network->isTestnet() ? $this->l(' WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`! ') : '';
             $hint = ($network->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
             $tokens = ($network->getTokens($this->settings->currencies));
             $item = [
                 'type' => 'text',
                 'label' => $network->name . ((!empty($tokens)) ? ' ' . $this->l('Blockchain') : ''),
                 'name' => $network->abbr,
-                'hint' => $hint,
+                'hint' => $testnet_warning . $hint,
                 'values' => $network->abbr,
-                'prefix' => '<i class="icon-coin ' . str_replace('@', '_', $network->abbr) . '"></i>',
+                'prefix' => '<i class="icon-coin ' . str_replace('@', '-', $network->abbr) . '"></i>',
             ];
-            if ($network->isTestnet()) {
-                $item['desc'] = $this->l('WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`!');
-            }
             if (!empty($tokens)) {
-                // Add coins
                 $coins = [];
                 $coins[] = $network;
                 foreach($tokens as $token) {
