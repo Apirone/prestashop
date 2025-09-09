@@ -66,7 +66,7 @@ This module is released under the [MIT][MIT] license
 ### Version 1.0.4
 
 * Added BNB coin, USDT and USDC stable coins on Binance smart chain
-* SDK updated
+* The SDK updated to 1.2.9
 
 ### Version 1.0.3
 
@@ -78,7 +78,7 @@ This module is released under the [MIT][MIT] license
 ### Version 1.0.2
 
 * Enabled display of test networks for all (uses * as a wildcard)
-* Updated Mkefile & files mode
+* Updated Makefile & files mode
 * Relative path bug fixed
 * Minor & misprint fixes
 * Vendor update
