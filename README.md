@@ -63,11 +63,16 @@ This module is released under the [MIT][MIT] license
 
 ## Changelog
 
+### Version 1.0.4
+
+* Added BNB coin, USDT and USDC stable coins on Binance smart chain
+* SDK updated
+
 ### Version 1.0.3
 
 * SDK updated
 * Refactoring the use of deprecated SDK methods
-* Settings storege updated
+* Settings storage updated
 * Added Ethereum network & tokens
 
 ### Version 1.0.2
