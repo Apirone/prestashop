@@ -1,17 +1,8 @@
+TAG := $(shell test -d .git && git tag --points-at HEAD)
 
-##
-# Makefile to help build module artifact
-#
-# Built on list_targets-Makefile:
-#
-#     https://gist.github.com/zaytseff/3c874a02b6e3db16c3ffa8406600060c
-#
+.PHONY: build-zip help build zip clear clean copy copy-vendor fix init targets assets vendor
 
-.PHONY: help build build-zip zip clear clean copy copy-vendor fix init targets assets vendor
-
-ME := $(realpath $(firstword $(MAKEFILE_LIST)))
-
-help: targets ## This help screen
+build-zip: build zip ## Clean, build and zip
 
 build: clean copy copy-vendor fix ## Create apirone module artifact
 
@@ -31,27 +22,13 @@ zip: ## Create artifact archive
 		echo 'Run make build before'; \
 		exit 1; \
 	else \
-		rm -rf ./apirone.zip; \
-		zip -r apirone.zip ./apirone; \
+		rm -rf ./apirone.*.zip; \
+		zip -r apirone.${TAG}.zip ./apirone; \
 		rm -rf ./apirone; \
 	fi
-build-zip: build zip ## Clean, build and zip
-
-clear: clean ## see clean
-
 clean: ## Remove artifact
-	rm -f apirone.zip
+	rm -f apirone.*.zip
 	rm -rf apirone
-
-targets:
-	@echo
-	@echo "Make targets:"
-	@echo
-	@cat $(ME) | \
-	sed -n -E 's/^([^.][^: ]+)\s*:(([^=#]*##\s*(.*[^[:space:]])\s*)|[^=].*)$$/    \1	\4/p' | \
-	sort -u | \
-	expand -t15
-	@echo
 
 init: vendor assets ## Install vendor & update assets
 
@@ -114,4 +91,15 @@ copy-vendor:
 	cp -rf ./vendor/apirone/php-qr-code/README.md ./apirone/vendor/apirone/php-qr-code/README.md
 
 	cp ./index.php ./apirone/vendor/index.php
+#   @cat $(ME) | \
 
+help: targets ## This help screen
+targets:
+	@echo
+	@echo "Make targets:"
+	@echo
+	@cat $(realpath $(firstword $(MAKEFILE_LIST))) | \
+	sed -n -E 's/^([^.][^: ]+)\s*:(([^=#]*##\s*(.*[^[:space:]])\s*)|[^=].*)$$/    \1	\4/p' | \
+	sort -u | \
+	expand -t15
+	@echo
