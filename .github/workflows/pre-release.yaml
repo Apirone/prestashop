@@ -49,4 +49,4 @@ jobs:
       #   uses: sarisia/actions-status-discord@v1
       #   with:
       #     webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      #     description: 'OpenCart ${{ env.VERSION }} created.'
+      #     description: 'Prestashop ${{ env.VERSION }} created.'
