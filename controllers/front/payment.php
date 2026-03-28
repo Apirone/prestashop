@@ -30,7 +30,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         $currency = $this->context->currency;
 
         // Create an apirone invoice
-        $cart_total = $cart->getOrderTotal();
+        $cart_total = $cart->getCartTotalPrice();
 
         // Check if invoice exist, not expired & has same crypto
         $cart_invoices = Invoice::getByOrder($cart->id);
@@ -38,24 +38,26 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
             $invoice = $cart_invoices[0];
             $invoice->update();
             if ($invoice->status !== 'expired' && $invoice->details->currency == $crypto->abbr) {
-                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->getMeta('factor'), $currency->iso_code, $crypto->abbr);
+                // TODO: call Utils::estimate
+                $cryptoAmount = Utils::fiat2crypto($cart_total * $this->module->settings->factor, $currency->iso_code, $crypto->abbr);
                 if ($cryptoAmount == $invoice->details->getAmount()) {
                     $this->invoice_redirect($invoice);
                 }
             }
         }
 
-        $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->getMeta('factor'));
+        // TODO: replace to Utils::estimate()
+        // $invoice = Invoice::fromFiatAmount($cart_total, $currency->iso_code, $crypto->abbr, $this->module->settings->factor);
         $invoice
             ->order($cart->id)
-            ->lifetime($this->module->settings->getMeta('timeout'));
+            ->lifetime($this->module->settings->timeout);
         
         // Set invoice secret & callback URL
         $invoice->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart->id . $cart->secure_key)], true));
         $invoice->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true));
 
         $userData = UserData::init();
-        $merchant = $this->module->settings->getMeta('merchant') ?? Configuration::get('PS_SHOP_NAME');
+        $merchant = $this->module->settings->merchant ?? Configuration::get('PS_SHOP_NAME');
 
         $userData->merchant($merchant);
         $userData->url(Context::getContext()->shop->getBaseURL());

@@ -10,9 +10,10 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
         $invoice = $this->setRenderParams();
         $this->module->apironePaymentProcess($invoice);
 
-        if (Render::isAjaxRequest()) {
-            return Invoice::renderAjax();
-        }
+        // TODO: no render, how to replace by invoice app?
+        // if (Render::isAjaxRequest()) {
+        //     return Invoice::renderAjax();
+        // }
 
         // Update invoice on page load
         $invoice->update();
@@ -21,33 +22,38 @@ class ApironeInvoiceModuleFrontController extends ModuleFrontController
         return $this->setTemplate('module:apirone/views/templates/front/invoice.tpl');
     }
 
+    /**
+     * @deprecated no render??
+     */
     protected function setRenderParams()
     {
-        Invoice::dataUrl($this->context->link->getModuleLink('apirone', 'invoice', []));
+        // TODO: remove
 
-        $id = Tools::getValue('id', null);
-        if (Render::isAjaxRequest()) {
-            $data = Tools::file_get_contents('php://input');
-            $params = ($data) ? json_decode(Utils::sanitize($data)) : null;
+        // Invoice::dataUrl($this->context->link->getModuleLink('apirone', 'invoice', []));
 
-            if ($params) {
-                $id = property_exists($params, 'invoice') ? (string) $params->invoice : null;
-            }
-        }
-        $invoice = Invoice::get($id);
+        // $id = Tools::getValue('id', null);
+        // if (Render::isAjaxRequest()) {
+        //     $data = Tools::file_get_contents('php://input');
+        //     $params = ($data) ? json_decode(Utils::sanitize($data)) : null;
 
-        // Create backlink
-        $backlink = '';
-        if (property_exists($invoice, 'order') && $invoice->order !== 0) {
-            $cart = new Cart($invoice->order);
-            $backlink = $this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true);
-        }
+        //     if ($params) {
+        //         $id = property_exists($params, 'invoice') ? (string) $params->invoice : null;
+        //     }
+        // }
+        // $invoice = Invoice::get($id);
 
-        // Set render params
-        Render::$idParam = 'id';
-        Render::$backlink = $backlink;
-        Render::$logo = Invoice::$settings->getMeta('logo');
+        // // Create backlink
+        // $backlink = '';
+        // if (property_exists($invoice, 'order') && $invoice->order !== 0) {
+        //     $cart = new Cart($invoice->order);
+        //     $backlink = $this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart->id . $cart->secure_key)], true);
+        // }
 
-        return $invoice;
+        // // Set render params
+        // Render::$idParam = 'id';
+        // Render::$backlink = $backlink;
+        // Render::$logo = Invoice::$settings->logo;
+
+        // return $invoice;
     }
 }

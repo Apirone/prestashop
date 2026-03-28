@@ -1,5 +1,5 @@
 {**
- * 2017-2023 apirone.com
+ * 2017-2026 apirone.com
  *
  * NOTICE OF LICENSE
  *
@@ -7,7 +7,7 @@
  * that is bundled with this package in the file LICENSE.txt.
  *
  * @author    Apirone OÜ <support@apirone.com>
- * @copyright 2017-2023 Apirone OÜ
+ * @copyright 2017-2026 Apirone OÜ
  * @license   https://opensource.org/license/mit/ MIT License
  *}
 <div class="row">

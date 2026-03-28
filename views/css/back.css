@@ -1,47 +1,3 @@
-.icon-coin {
-    background: url('../img/aprn.svg') no-repeat;
-    background-size: cover;
-    width: 19px;
-    height: 19px;
-}
-.icon-coin.bch, .icon-coin.tbch {
-  background-image: url("../img/bch.svg"), url("../img/aprn.svg");
-}
-.icon-coin.btc, .icon-coin.tbtc {
-  background-image: url("../img/btc.svg"), url("../img/aprn.svg");
-}
-.icon-coin.doge, .icon-coin.tdoge {
-  background-image: url("../img/doge.svg"), url("../img/aprn.svg");
-}
-.icon-coin.ltc, .icon-coin.tltc {
-  background-image: url("../img/ltc.svg"), url("../img/aprn.svg");
-}
-.icon-coin.trx, .icon-coin.ttrx {
-  background-image: url("../img/trx.svg"), url("../img/aprn.svg");
-}
-.icon-coin.eth, .icon-coin.teth {
-  background-image: url("../img/eth.svg"), url("../img/aprn.svg");
-}
-.icon-coin.bnb, .icon-coin.tbnb {
-  background-image: url("../img/bnb.svg"), url("../img/aprn.svg");
-}
-.icon-coin.usdc-trx, .icon-coin.usdc-ttrx,
-.icon-coin.usdc-eth, .icon-coin.usdc-teth,
-.icon-coin.usdc-bnb, .icon-coin.usdc-bnb {
-  background-image: url("../img/usdc.svg"), url("../img/aprn.svg");
-}
-.icon-coin.usdt-trx, .icon-coin.usdt-ttrx,
-.icon-coin.usdt-eth, .icon-coin.usdt-teth,
-.icon-coin.usdt-bnb, .icon-coin.usdt-tbnb {
-  background-image: url("../img/usdt.svg"), url("../img/aprn.svg");
-}
-.icon-coin.tbch, .icon-coin.tbtc, .icon-coin.tdoge, .icon-coin.tltc,
-.icon-coin.ttrx, .icon-coin.usdc-ttrx, .icon-coin.usdt-ttrx,
-.icon-coin.teth, .icon-coin.usdc-teth, .icon-coin.usdt-teth,
-.icon-coin.tbnb, .icon-coin.usdc-tbnb, .icon-coin.usdt-tbnb {
-  filter: grayscale(1);
-}
-
 .coins-wrapper {
     display: flex;
     flex-direction: column;
@@ -53,6 +9,10 @@
     align-items: center;
     margin-right: 0.75rem;
 }
-.coin-block i, .coin-block input[type=checkbox], .coin-block span {
+.coin-block input[type=checkbox] {
     margin: 0 .5rem 0 0;
+}
+.coin-block span {
+    font-size: 12px !important;
+    margin-left: .25rem;
 }

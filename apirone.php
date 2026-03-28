@@ -6,24 +6,22 @@ if (!defined('_PS_VERSION_')) {
 require_once (_PS_MODULE_DIR_ . 'apirone/vendor/autoload.php');
 require_once (_PS_MODULE_DIR_ . 'apirone/classes/FileLoggerWrapper.php');
 
-use Apirone\API\Endpoints\Account;
-use Apirone\API\Log\LoggerWrapper;
+use Apirone\API\Http\Request;
 use Apirone\SDK\Model\Settings;
 use Apirone\SDK\Invoice;
-use Apirone\SDK\Service\InvoiceQuery;
+use Apirone\SDK\Service\Db as ApironeDb;
+use Apirone\SDK\Service\Logger;
 use Apirone\SDK\Service\Utils;
 
 class Apirone extends PaymentModule
 {
-
-    public ?Settings $settings = null;
-
     public ?Closure $logger = null;
+    public ?Settings $settings = null;
 
     public function __construct()
     {
         $this->name = 'apirone';
-        $this->version = '1.0.4';
+        $this->version = '2.0.0';
         $this->tab = 'payments_gateways';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
@@ -32,17 +30,21 @@ class Apirone extends PaymentModule
         parent::__construct();
 
         $this->displayName = $this->l('Apirone Crypto Payments');
-        $this->description = $this->l('Accept Crypto with Prestashop');
+        $this->description = $this->l('Accept Crypto with PrestaShop');
         $this->confirmUninstall = $this->l('Are you sure you want to remove the module?');
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
 
+        Request::userAgent('PrestaShop/' . _PS_VERSION_ . ' MCCP/' . $this->version);
+
         $this->settings = $this->getSettings();
-        $this->logger = $this->logger_callback($this->settings->getMeta('debug') ? FileLogger::INFO : FileLogger::ERROR);
 
-        Invoice::logger($this->logger);
-        Invoice::db(static::db_callback(), _DB_PREFIX_);
-        Invoice::settings($this->settings);
+        Logger::set(
+            $this->logger = $this->logger_callback(
+                $this->settings->debug ? FileLogger::INFO : FileLogger::ERROR));
 
+        ApironeDb::adapter('mysql');
+        ApironeDb::prefix(_DB_PREFIX_);
+        ApironeDb::handler($this->db_callback());
     }
 
     public function install()
@@ -93,59 +95,55 @@ class Apirone extends PaymentModule
      */
     public function getContent()
     {
-        $message = '';
-        try {
-            $this->settings->loadCurrencies();
-        }
-        catch (Exception $e) {
-            $this->context->controller->errors[] = $this->l($e->getMessage());
-        }
+        $networks = $this->settings->networks;
 
         // Save settings if sent
         if (Tools::isSubmit('submitApironeSettings')) {
-            $errors = [];
             $values = $this->getSettingsFormValues();
 
-            $this->settings->addMeta('merchant', $values['merchant']);
-            $this->settings->addMeta('testCustomer', $values['testCustomer']);
-            $this->settings->addMeta('logo', $values['logo']);
-            $this->settings->addMeta('debug', $values['debug']);
+            $this->settings
+                ->merchant(trim($values['merchant']))
+                ->testCustomer(trim($values['testCustomer']))
+                ->withFee(!!$values['withFee'])
+                ->logo(!!$values['logo'])
+                ->debug(!!$values['debug']);
 
             // Validate timeout
-            if ($values['timeout'] == 0) {
-                $this->context->controller->errors[] = $this->l("'Payment timeout' must be positive integer");
+            $timeout = intval($values['timeout']);
+            if ($timeout < 0) {
+                $this->context->controller->errors[] = $this->l("'Payment timeout' must be a non-negative integer number");
             }
             else {
-                $this->settings->addMeta('timeout', $values['timeout']);
+                $this->settings->timeout($timeout);
             }
 
             // Validate factor
-            if ($values['factor'] == 0) {
-                $this->context->controller->errors[] = $this->l("'Price adjustment factor' must be positive float");
+            $factor = floatval($values['factor']);
+            if ($factor <= 0) {
+                $this->context->controller->errors[] = $this->l("'Payment adjustment factor' must be a positive floating point number");
             }
             else {
-                $this->settings->addMeta('factor', $values['factor']);
+                $this->settings->factor($factor);
             }
 
             // Save processing fee plan
-            if ($this->settings->getMeta('processingFee') !== $values['processingFee']) {
-                if(in_array($values['processingFee'], ['percentage', 'fixed'])) {
-                    $this->settings->addMeta('processingFee', $values['processingFee']);
-
-                    foreach ($this->settings->currencies as $network) {
-                        $this->settings->currency($network->abbr)->policy($values['processingFee']);
-                    }
-                    $this->settings->saveCurrencies();
-
-                    // Check for errors
-                    foreach ($this->settings->currencies as $network) {
-                        if ($network->hasError()) {
-                            $this->context->controller->errors[] = $network->name . ' has error: ' . $network->error;
-                        }
-                    }
+            $processingFee = $values['processingFee'];
+            if ($this->settings->processingFee !== $processingFee) {
+                if(!in_array($processingFee, ['percentage', 'fixed'])) {
+                    $this->context->controller->errors[] = $this->l("'Processing fee plan' must be 'percentage' or 'fixed'");
                 }
                 else {
-                    $this->context->controller->errors[] = $this->l("'Processing fee plan' must be 'percentage' or 'fixed'");
+                    $this->settings->processingFee($processingFee);
+
+                    foreach ($networks as $network) {
+                        $network->policy($processingFee);
+                    }
+                    $errors = $this->settings->saveNetworks();
+
+                    // Check for errors
+                    foreach ($errors as $abbr => $error) {
+                        $this->context->controller->errors[] = $networks[$abbr]->name . $this->l(' has error: ') . $error;
+                    }
                 }
             }
 
@@ -155,36 +153,44 @@ class Apirone extends PaymentModule
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
             }
         }
-        // Save currencies if sent
+        // TODO: Save currencies if sent
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
-
-            foreach ($this->settings->networks() as $network) {
-                $this->settings->currency($network->abbr)->address($values[$network->abbr]);
-                if ($network->isNetwork()) {
-                    $tokens = $network->getTokens($this->settings->currencies);
-                    if ($tokens) {
-                        $tokens = array_merge([$network], $tokens);
-                        foreach ($tokens as $token) {
-                            $this->settings->currency($token->abbr)->address($network->address);
-                            $this->settings->addMeta($token->abbr, pSQL(Tools::getValue($token->abbr . '_active', '')));
+            $visible_coins = Tools::getValue('visible', []);
+            if (count($values)) {
+                $coins = [];
+                foreach ($networks as $abbr => $network) {
+                    $address = array_key_exists($abbr, $values)
+                        ? trim($values[$abbr])
+                        : null;
+                    $network->address($address);
+                    if (!$address) {
+                        continue;
+                    }
+                    if (!count($tokens = $network->tokens)) {
+                        $coins[] = $abbr;
+                        continue;
+                    }
+                    foreach (array_merge([$abbr], array_keys($network->tokens)) as $abbr) {
+                        if (!empty($visible_coins) && array_key_exists($abbr, $visible_coins) && $visible_coins[$abbr]) {
+                            $coins[] = $abbr;
                         }
                     }
                 }
-            }
+                $this->settings->coins($coins);
 
-            $this->settings->saveCurrencies();
+                $errors = $this->settings->saveNetworks();
 
-            foreach ($this->settings->currencies as $network) {
-                if ($network->hasError()) {
-                    $this->context->controller->errors[] = $network->name . ' has error: ' . $network->error;
+                // Check for errors
+                foreach ($errors as $abbr => $error) {
+                    $this->context->controller->errors[] = $networks[$abbr]->name . $this->l(' has error: ') . $error;
                 }
-            }
 
-            if (empty($this->context->controller->errors)) {
-                Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
-                $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
-                $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
+                if (empty($this->context->controller->errors)) {
+                    Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
+                    $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
+                    $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
+                }
             }
         }
         if (Tools::isSubmit('submitApironeCheckUpdate')) {
@@ -231,20 +237,22 @@ class Apirone extends PaymentModule
                     [
                         'type' => 'text',
                         'name' => 'merchant',
-                        'label' => $this->l('Merchant'),
+                        'label' => $this->l('Merchant name'),
                         'hint' => $this->l('Show Merchant name on the plugin invoice page. If this field is empty, it will not be displayed for a customer.'),
-                    ],
-                    [
-                        'type' => 'text',
-                        'name' => 'timeout',
-                        'label' => $this->l('Payment timeout'),
-                        'hint' => $this->l('The period during which a customer shall pay. Set value in seconds. Default value is 1800 (30 minutes).'),
                     ],
                     [
                         'type' => 'text',
                         'name' => 'testCustomer',
                         'label' => $this->l('Test currency customer'),
                         'hint' => $this->l('Enter an email of the customer to whom the test currencies will be shown.'),
+                    ],
+                    [
+                        'type' => 'number',
+                        'min' => '0',
+                        'name' => 'timeout',
+                        'label' => $this->l('Payment timeout'),
+                        'hint' => $this->l('The period during which a customer shall pay. Set value in seconds. Default value is 1800 (30 minutes).'),
+                        'required' => true,
                     ],
                     [
                         'type' => 'select',
@@ -260,10 +268,32 @@ class Apirone extends PaymentModule
                         ],
                     ],
                     [
-                        'type' => 'text',
+                        'type' => 'number',
+                        'min' => '0.01',
+                        'step' => '0.01',
                         'name' => 'factor',
-                        'label' => $this->l('Price adjustment factor'),
+                        'label' => $this->l('Payment adjustment factor'),
                         'hint' => $this->l('If you want to add/subtract percent to/from the payment amount, use the following  price adjustment factor multiplied by the amount. For example: 100% * 0.99 = 99% | 100% * 1.01 = 101%'),
+                        'required' => true,
+                    ],
+                    [
+                        'type' => 'switch',
+                        'name' => 'withFee',
+                        'label' => $this->l('Include fees'),
+                        'is_bool' => true,
+                        'hint' => $this->l('Adds service and network fees to total. Final amount per coin is shown in selector.'), // TODO
+                        'values' => [
+                            [
+                                'id' => 'with_fee_on',
+                                'value' => true,
+                                'label' => $this->l('Yes')
+                            ],
+                            [
+                                'id' => 'with_fee_off',
+                                'value' => false,
+                                'label' => $this->l('No')
+                            ],
+                        ],
                     ],
                     [
                         'type' => 'switch',
@@ -334,17 +364,76 @@ class Apirone extends PaymentModule
         return $helper->generateForm([$form_fields]);
     }
 
+    protected function renderCurrencyIcon($icon_name): string
+    {
+        // TODO: path 'views/img/currencies/' not works, PS inserts 'adm/' path segment, two variants available
+        // $PATH = '/prestashop/modules/apirone/views/img/currencies/';
+        $PATH = 'modules/apirone/views/img/currencies/';
+        return '<img src="'.$PATH.$icon_name.'.svg" width="18" onerror="this.onerror=null;this.src=\''.$PATH.'placeholder.svg\'">';
+    }
+
+    /**
+     * @return array Array of networks DTO with keys of networks abbreviations.
+     * Each result array item is DTO with icon, name, tooltip, address and tokens array.
+     * Each token array item is DTO with icon, visibility state and tooltip.
+     */
+    protected function getNetworksViewModel(): array
+    {
+        $coins = $this->settings->coins;
+
+        $TESTNET_WARNING = $this->l(' WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`! ');
+
+        foreach ($this->settings->networks as $network) {
+            $network_abbr = $network->network;
+            $name = $network->name;
+            $address = $network->address;
+            $testnet = $network->isTestnet();
+            $tokens = $network->tokens;
+            $has_tokens = count($tokens) > 0;
+
+            $networks_dto[$network_abbr] = $network_dto = new \stdClass();
+
+            $network_dto->icon = $this->renderCurrencyIcon($network_abbr);
+            $network_dto->name = $name. ($has_tokens ? ' '.$this->l('Blockchain') : '');
+            $network_dto->address = $address;
+            $network_dto->tooltip = $this->l($address ? 'Remove address to deactivate currency.' : 'Enter valid address to activate currency.');
+            $network_dto->testnet = $testnet;
+            $network_dto->error = $network->error;
+
+            if ($testnet) {
+                $network_dto->test_tooltip = $TESTNET_WARNING;
+            }
+            if (!$has_tokens) {
+                continue;
+            }
+            $tokens_dto = [];
+
+            $tokens_dto[$network_abbr] = $token_dto = new \stdClass();
+
+            $token_dto->checkbox_id = 'state_'.$network_abbr;
+            $token_dto->icon = $this->renderCurrencyIcon($network_abbr);
+            $token_dto->name = strtoupper($name);
+            $token_dto->state = $address && is_array($coins) && in_array($network_abbr, $coins);
+            $token_dto->tooltip = $this->l('Show/hide from currency selector');
+
+            foreach ($tokens as $abbr => $token) {
+                $tokens_dto[$abbr] = $token_dto = new \stdClass();
+
+                $token_dto->checkbox_id = 'state_'.$network_abbr.'_'.$token->token;
+                $token_dto->icon = $this->renderCurrencyIcon($token->token);
+                $token_dto->name = strtoupper($token->alias);
+                $token_dto->state = $address && is_array($coins) && in_array($abbr, $coins);
+                $token_dto->tooltip = $this->l('Show/hide from currency selector');
+            }
+            $network_dto->tokens = $tokens_dto;
+        }
+        return $networks_dto;
+    }
+
     protected function renderNetworkCoins ($coins)
     {
-        $values = [];
-        foreach ($coins as $coin) {
-            $values[$coin->abbr . '_active'] = $this->settings->getMeta($coin->abbr);
-        }
-        $this->context->smarty->assign('values', $values);
         $this->context->smarty->assign('coins', $coins);
-
         return $this->context->smarty->fetch($this->local_path.'views/templates/admin/token_checkboxes.tpl');
-
     }
 
     /**
@@ -353,26 +442,16 @@ class Apirone extends PaymentModule
     protected function renderCurrenciesForm()
     {
         $form_data = [];
-
-        foreach ($this->settings->networks as $network) {
-            $testnet_warning = $network->isTestnet() ? $this->l(' WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`! ') : '';
-            $hint = ($network->address) ? $this->l('Remove address to deactivate currency.') : $this->l('Enter valid address to activate currency.');
-            $tokens = ($network->getTokens($this->settings->currencies));
+        foreach ($this->getNetworksViewModel() as $abbr => $network_dto) {
             $item = [
                 'type' => 'text',
-                'label' => $network->name . ((!empty($tokens)) ? ' ' . $this->l('Blockchain') : ''),
-                'name' => $network->abbr,
-                'hint' => $testnet_warning . $hint,
-                'values' => $network->abbr,
-                'prefix' => '<i class="icon-coin ' . str_replace('@', '-', $network->abbr) . '"></i>',
+                'label' => $network_dto->name,
+                'name' => $abbr,
+                'hint' => ($network_dto->test_tooltip ?? ''). $network_dto->tooltip,
+                'values' => $abbr,
+                'prefix' => $network_dto->icon,
             ];
-            if (!empty($tokens)) {
-                $coins = [];
-                $coins[] = $network;
-                foreach($tokens as $token) {
-                    $coins[] = $token;
-                }
-
+            if ($coins = $network_dto->tokens) {
                 $item['desc'] = $this->renderNetworkCoins($coins);
             }
             $form_data[] = $item;
@@ -381,7 +460,6 @@ class Apirone extends PaymentModule
         if (empty($form_data)) {
             $this->context->controller->errors[] = 'Can`t get currencies list from apirone gateway. Please, try later.';
         }
-
         $form_fields = [
             'form' => [
                 'legend' => [
@@ -425,15 +503,16 @@ class Apirone extends PaymentModule
      */
     protected function getSettingsFormValues()
     {
-        $settings = $this->getSettings();
         $values = [];
-        $values['merchant'] = pSQL(Tools::getValue('merchant', $settings->getMeta('merchant')));
-        $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $settings->getMeta('timeout')));
-        $values['factor'] = (float) pSQL(Tools::getValue('factor', $settings->getMeta('factor')));
-        $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $settings->getMeta('testCustomer')));
-        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $settings->getMeta('processingFee')));
-        $values['logo'] = pSQL(Tools::getValue('logo', $settings->getMeta('logo')));
-        $values['debug'] = pSQL(Tools::getValue('debug', $settings->getMeta('debug')));
+
+        $values['merchant'] = pSQL(Tools::getValue('merchant', $this->settings->merchant));
+        $values['testCustomer'] = pSQL(Tools::getValue('testCustomer', $this->settings->testCustomer));
+        $values['timeout'] = (int) pSQL(Tools::getValue('timeout', $this->settings->timeout));
+        $values['processingFee'] = pSQL(Tools::getValue('processingFee', $this->settings->processingFee));
+        $values['factor'] = (float) pSQL(Tools::getValue('factor', $this->settings->factor));
+        $values['withFee'] = pSQL(Tools::getValue('withFee', $this->settings->withFee));
+        $values['logo'] = pSQL(Tools::getValue('logo', $this->settings->logo));
+        $values['debug'] = pSQL(Tools::getValue('debug', $this->settings->debug));
 
         return $values;
     }
@@ -443,12 +522,10 @@ class Apirone extends PaymentModule
      */
     protected function getCurrenciesFormValues()
     {
-        $networks = $this->getSettings()->networks();
         $values = [];
-        foreach ($networks as $item) {
-            $values[$item->abbr] = pSQL(Tools::getValue($item->abbr, $item->getAddress()));
+        foreach ($this->settings->networks as $abbr => $network) {
+            $values[$abbr] = pSQL(Tools::getValue($abbr, $network->address));
         }
-
         return $values;
     }
 
@@ -461,25 +538,26 @@ class Apirone extends PaymentModule
      */
     public function hookPaymentOptions($params)
     {
+        // TODO:
+
         if (!$this->active) {
             return;
         }
-        if (!$this->checkCurrency($params['cart'])) {
-            return;
-        }
-
         $coins = [];
         $cart = $params['cart'];
         $fiat = $this->getCartCurrency($cart);
-
+        if (!$fiat) {
+            return;
+        }
         foreach ($this->getAvailableCryptos() as $currency) {
             try {
-                $amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
-                $currency->amount = Utils::humanizeAmount(Utils::cur2min($amount, $currency->unitsFactor), $currency);
+                // TODO: replace by Utils::estimate() or getAvailableCryptos() results
+                // $amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
+                // $currency->amount = Utils::humanizeAmount(Utils::cur2min($amount, $currency->unitsFactor), $currency);
                 $coins[] = $currency;
             }
             catch(Exception $e) {
-                LoggerWrapper::error($e->getMessage());
+                Logger::error($e->getMessage());
             }
         }
 
@@ -491,7 +569,8 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign(['action' => $action, 'coins' => $coins]);
 
         $option = new \PrestaShop\PrestaShop\Core\Payment\PaymentOption();
-        $option->setCallToActionText($this->l('Pay with crypto'))
+        $option
+            ->setCallToActionText($this->l('Pay with crypto'))
             ->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))
             ->setForm($this->fetch('module:apirone/views/templates/hook/currencyselector.tpl'));
 
@@ -500,6 +579,8 @@ class Apirone extends PaymentModule
 
     public function hookDisplayAdminOrderMain($params)
     {
+        // TODO: Invoice::getByOrder($order->id_cart) called in getOrderInvoicesByOrderId why duplicate here?
+
         if (empty($this->getOrderInvoicesByOrderId($params['id_order']))) {
             return;
         }
@@ -516,7 +597,9 @@ class Apirone extends PaymentModule
             $itemInvoice->invoice = $details->invoice;
             $itemInvoice->address = $details->address;
             $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
-            $itemInvoice->amount = Utils::humanizeAmount($details->amount, $currency) . ' ' . strtoupper($details->currency);
+            // $itemInvoice->amount = Utils::humanizeAmount($details->amount, $currency) . ' ' . strtoupper($details->currency);
+            // TODO: check what in $details->amount
+            $itemInvoice->amount = $details->amount . ' ' . strtoupper($details->currency);
             $itemInvoice->status = $details->status;
             $itemInvoice->history = [];
 
@@ -525,7 +608,9 @@ class Apirone extends PaymentModule
                 $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->date . 'Z'));
                 $itemHistory->status = $item->status;
                 if ($item->amount !== null) {
-                    $itemHistory->amount = Utils::humanizeAmount($item->amount, $currency);
+                    // TODO: check what in $details->amount
+                    // $itemHistory->amount = Utils::humanizeAmount($item->amount, $currency);
+                    $itemHistory->amount = $item->amount;
                     $itemHistory->txid = Utils::getTransactionLink($currency, $item->txid);
                 }
                 $itemInvoice->history[] = $itemHistory;
@@ -551,50 +636,37 @@ class Apirone extends PaymentModule
         $this->context->controller->addCSS(__PS_BASE_URI__ . '/modules/' . $this->name . '/views/css/back.css');
     }
 
-    public function checkCurrency($cart)
+    public function getCartCurrency($cart)
     {
         $cart_currency = new Currency($cart->id_currency);
         $shop_currencies = $this->getCurrency($cart->id_currency);
         if (is_array($shop_currencies)) {
             foreach ($shop_currencies as $currency) {
                 if ($cart_currency->id == $currency['id_currency']) {
-                    return true;
+                    return $currency;
                 }
             }
         }
-
-        return false;
-    }
-
-    public function getCartCurrency($cart)
-    {
-        $cart_currency = new Currency($cart->id_currency);
-        $available_currencies = $this->getCurrency($cart->id_currency);
-        if (is_array($available_currencies)) {
-            foreach ($available_currencies as $item) {
-                if ($cart_currency->id == $item['id_currency']) {
-                    return $item;
-                }
-            }
-        }
-
         return false;
     }
 
     public function getAvailableCryptos(): array
     {
+        // TODO
+
         // Do not show payment method for invalid account
-        try {
-            Account::init($this->settings->account)->balance();
-        }
-        catch (Exception $e) {
-            $this->log('error', $this->l('Can`t get available cryptos for currency selector: ') . $e->getMessage());
-            return [];
-        }
+        // TODO: replace with estimate from coins
+        // try {
+        //     Account::init($this->settings->account)->balance();
+        // }
+        // catch (Exception $e) {
+        //     $this->log('error', $this->l('Can`t get available cryptos for currency selector: ') . $e->getMessage());
+        //     return [];
+        // }
 
         $coins = [];
         $networks = $this->settings->networks();
-        $testCustomer = $this->settings->getMeta('testCustomer');
+        $testCustomer = $this->settings->testCustomer;
 
         foreach ($networks as $network) {
             if ($network->getAddress() !== null && !$network->hasError()) {
@@ -646,58 +718,88 @@ class Apirone extends PaymentModule
 
         return $invoices;
     }
+
     protected function getSettings(): Settings
     {
         $json = Configuration::get('APIRONE_SETTINGS');
-
-        if ($json) {
-            $settings = Settings::fromJson($json);
-            if (empty((array)$settings->meta)) {
-                return $this->updateSettings($settings);
-            }
-
-            return $settings;
+        if (!$json) {
+            return $this->createSettings();
         }
+        $settings = Settings::fromJson($json);
 
-        // Create new instance
-        $settings = Settings::init()->createAccount();
-        if ($settings->getMeta('processingFee') == null) {
-            $settings->addMeta('processingFee', 'percentage');
+        if (!($settings->account && $settings->transferKey)) {
+            return $this->createSettings();
         }
-        $settings->addMeta('timeout', 1800);
-        $settings->addMeta('factor', 1);
-        $settings->addMeta('logo', true);
-        $settings->addMeta('debug', false);
+        if (empty((array)$settings->meta) || property_exists($settings, 'currencies')) {
+            return $this->updateSettings($settings);
+        }
+        return $settings;
+    }
 
+    private function createSettings()
+    {
+        $settings = Settings::init()
+            ->createAccount()
+            ->processingFee('percentage')
+            ->timeout(1800)
+            ->factor(1)
+            ->logo(true);
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
-
         return $settings;
     }
 
     private function updateSettings($settings)
     {
-        $settings->addMeta('merchant', $settings->merchant);
-        $settings->addMeta('timeout', $settings->timeout);
-        $settings->addMeta('factor', $settings->factor);
-        $settings->addMeta('logo', $settings->logo);
-        $settings->addMeta('debug', $settings->debug);
-        foreach((array) $settings->extra as $key => $val) {
-            $settings->addMeta($key, $val);
-        };
+        // TODO: check if props is got from JSON root
+        $settings
+            ->merchant($settings->merchant)
+            ->timeout($settings->timeout)
+            ->factor($settings->factor)
+            ->logo($settings->logo)
+            ->debug($settings->debug);
 
+        // TODO: check if extra is got from JSON root
+        if ($extra = $settings->extra) {
+            foreach((array)$extra as $key => $val) {
+                if ($val) {
+                    $settings->meta[$key] = $val;
+                }
+            }
+        }
+        if (!$settings->processingFee) {
+            $settings->processingFee('percentage');
+        }
+        if (property_exists($settings, 'currencies') && !$settings->coins) {
+            $coins = [];
+            foreach ($settings->networks as $network) {
+                if (!$network->address) {
+                    continue;
+                }
+                // address stored for currency
+                $coins[] = $network->abbr;
+
+                if (!count($tokens = $network->tokens)) {
+                    // currency has no tokens
+                    continue;
+                }
+                // currency has tokens, add all as visible by default
+                foreach ($tokens as $token) {
+                    $coins[] = $token->abbr;
+                }
+            }
+            $settings->coins($coins);
+        }
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
         return $settings;
     }
 
     private function createApironeTable()
     {
-        if (!Db::getInstance()->execute(InvoiceQuery::createInvoicesTable(_DB_PREFIX_))) {
+        if (!ApironeDb::install()) {
             $this->warning = 'Can\'t create apirone table.';
             $this->log('error', $this->warning);
-
             return false;
         }
-
         return true;
     }
 
@@ -775,7 +877,7 @@ class Apirone extends PaymentModule
 
     public function log($level, $message, $context = [])
     {
-        if($this->logger !== null) {
+        if($this->logger) {
             call_user_func_array($this->logger, [$level, $message, $context]);
         }
     }
@@ -797,14 +899,9 @@ class Apirone extends PaymentModule
         return static function($query) {
             $db = Db::getInstance();
 
-            if (preg_match('/select/i', $query)) {
-                $result = $db->executeS($query);
-            }
-            else {
-                $result = $db->execute($query);
-            }
-
-            return $result;
+            return preg_match('/select/i', $query)
+                ? $db->executeS($query)
+                : $db->execute($query);
         };
     }
 
@@ -816,14 +913,12 @@ class Apirone extends PaymentModule
             'success' => $this->context->controller->success,
             'info' => $this->context->controller->info,
         ]);
-
         if (session_status() == PHP_SESSION_ACTIVE) {
             $_SESSION['notifications'] = $notifications;
         }
         else {
             setcookie('notifications', $notifications);
         }
-
         return call_user_func_array(['Tools', 'redirect'], func_get_args());
     }
 
@@ -896,7 +991,8 @@ class Apirone extends PaymentModule
             $order = Order::getByCartId($cart->id);
 
             $current_status = (int) $order->getCurrentState();
-            if ($invoice->getMeta('order_status') !== $current_status) {
+            // TODO: check meta of invoice
+            if ($invoice->order_status !== $current_status) {
                 $this->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
 
                 return;

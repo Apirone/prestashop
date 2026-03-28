@@ -1,11 +1,10 @@
 <div class="coins-wrapper">
-{foreach from=$coins item=coin}
-    {assign var="coin_active" value="{$coin->abbr}_active"}
+{foreach from=$coins key=abbr item=coin}
     <div class="coin-block">
-        <label for="{$coin->abbr}_active">
-        <input class="active-coin" type="checkbox" name="{$coin->abbr}_active" id="{$coin->abbr}_active" {(isset($values[$coin_active]) && $values[$coin_active] == 'on') ? 'checked' : '' } />
-        <i class="icon-coin {$coin->abbr|replace:'@':'-'}"></i>
-        <span>{strtoupper($coin->alias)}</span>
+        <label class="control-label" for="{$coin->checkbox_id}">
+        <input class="active-coin" type="checkbox" name="visible[{$abbr}]" id="{$coin->checkbox_id}" {($coin->state) ? 'checked' : ''} />
+        {$coin->icon}
+        <span class="label-tooltip" data-toggle="tooltip" data-html="true" data-original-title="{$coin->tooltip}">{$coin->name}</span>
         </label>
     </div>
 {/foreach}
