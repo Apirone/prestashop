@@ -247,8 +247,7 @@ class Apirone extends PaymentModule
                         'hint' => $this->l('Enter an email of the customer to whom the test currencies will be shown.'),
                     ],
                     [
-                        'type' => 'number',
-                        'min' => '0',
+                        'type' => 'text',
                         'name' => 'timeout',
                         'label' => $this->l('Payment timeout'),
                         'hint' => $this->l('The period during which a customer shall pay. Set value in seconds. Default value is 1800 (30 minutes).'),
@@ -268,9 +267,7 @@ class Apirone extends PaymentModule
                         ],
                     ],
                     [
-                        'type' => 'number',
-                        'min' => '0.01',
-                        'step' => '0.01',
+                        'type' => 'text',
                         'name' => 'factor',
                         'label' => $this->l('Payment adjustment factor'),
                         'hint' => $this->l('If you want to add/subtract percent to/from the payment amount, use the following  price adjustment factor multiplied by the amount. For example: 100% * 0.99 = 99% | 100% * 1.01 = 101%'),
@@ -447,7 +444,8 @@ class Apirone extends PaymentModule
                 'type' => 'text',
                 'label' => $network_dto->name,
                 'name' => $abbr,
-                'hint' => ($network_dto->test_tooltip ?? ''). $network_dto->tooltip,
+                'hint' => $network_dto->tooltip,
+                'desc' => $network_dto->test_tooltip,
                 'values' => $abbr,
                 'prefix' => $network_dto->icon,
             ];
