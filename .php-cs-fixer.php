@@ -1,22 +1,24 @@
 <?php
 
+$now_year = date("Y");
+
 $header = <<<TXT
-2017-2023 apirone.com
+2017-$now_year apirone.com
 
 NOTICE OF LICENSE
 
-This source file licensed under the MIT license 
+This source file licensed under the MIT license
 that is bundled with this package in the file LICENSE.txt.
 
 @author    Apirone OÜ <support@apirone.com>
-@copyright 2017-2023 Apirone OÜ
+@copyright 2017-$now_year Apirone OÜ
 @license   https://opensource.org/license/mit/ MIT License
 TXT;
 
 $finder = PhpCsFixer\Finder::create()
     ->in(__DIR__)
     ->exclude(['vendor']);
-                        
+
 
 $config = new PhpCsFixer\Config();
 

@@ -14,12 +14,12 @@ jobs:
         with:
           token: ${{ secrets.REPOSITORY_DISPATCH_TOKEN }}
           repository: Apirone/examples-site
-          event-type: deploy-opencart
+          event-type: deploy-prestashop
           client-payload: '{"tag": "${{ github.ref_name }}", "version": "${{ github.ref_name }}"}'
 
-      # - name: Send notification
-      #   if: ${{ always() }}
-      #   uses: sarisia/actions-status-discord@v1
-      #   with:
-      #     webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      #     description: 'Prestashop ${{ github.ref_name }} released now.'
+      - name: Send notification
+        if: ${{ always() }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          description: 'Prestashop ${{ github.ref_name }} released now.'

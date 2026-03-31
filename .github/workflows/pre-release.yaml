@@ -41,12 +41,12 @@ jobs:
         with:
           token: ${{ secrets.REPOSITORY_DISPATCH_TOKEN }}
           repository: Apirone/examples-site
-          event-type: deploy-opencart
+          event-type: deploy-prestashop
           client-payload: '{"tag": "pre-release", "version": "${{ env.VERSION }}"}'
 
-      # - name: Send notification
-      #   if: ${{ always() }}
-      #   uses: sarisia/actions-status-discord@v1
-      #   with:
-      #     webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      #     description: 'Prestashop ${{ env.VERSION }} created.'
+      - name: Send notification
+        if: ${{ always() }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          description: 'Prestashop ${{ env.VERSION }} created.'
