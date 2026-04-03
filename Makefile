@@ -2,7 +2,7 @@
 
 .PHONY: build init assets vendor help
 
-build: ## Create apirone module artifact
+build: ## Create apirone module artifact.
 	@ /bin/bash ./build.sh
 
 init: vendor assets ## Install vendor & update assets
