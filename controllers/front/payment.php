@@ -21,7 +21,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
 
         $crypto = $this->module->getCrypto();
 
-        if ($crypto == false) {
+        if (!$crypto) {
             $this->module->log('error', 'Can\'t get crypto details', [Tools::getValue('coin')]);
             $this->errors[] = $this->module->l('There has been an error processing your order.');
             $this->redirectWithNotifications($this->context->link->getPageLink('order', true, null, ['step' => '3']));
@@ -30,7 +30,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         $currency = $this->context->currency;
 
         // Create an apirone invoice
-        $cart_total = $cart->getCartTotalPrice();
+        $cart_total = $cart->getOrderTotal();
 
         // Check if invoice exist, not expired & has same crypto
         $cart_invoices = Invoice::getByOrder($cart->id);

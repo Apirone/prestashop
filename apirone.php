@@ -153,7 +153,7 @@ class Apirone extends PaymentModule
                 $message = $this->displayConfirmation($this->trans('Update successful', [], 'Admin.Notifications.Success'));
             }
         }
-        // TODO: Save currencies if sent
+        // Save currencies if sent
         if (Tools::isSubmit('submitApironeCurrencies')) {
             $values = $this->getCurrenciesFormValues();
             $visible_coins = Tools::getValue('visible', []);
@@ -278,7 +278,7 @@ class Apirone extends PaymentModule
                         'name' => 'withFee',
                         'label' => $this->l('Include fees'),
                         'is_bool' => true,
-                        'hint' => $this->l('Adds service and network fees to total. Final amount per coin is shown in selector.'), // TODO
+                        'hint' => $this->l('Adds service and network fees to total. Final amount per coin is shown in selector.'),
                         'values' => [
                             [
                                 'id' => 'with_fee_on',
@@ -361,14 +361,6 @@ class Apirone extends PaymentModule
         return $helper->generateForm([$form_fields]);
     }
 
-    protected function renderCurrencyIcon($icon_name): string
-    {
-        // TODO: path 'views/img/currencies/' not works, PS inserts 'adm/' path segment, two variants available
-        // $PATH = '/prestashop/modules/apirone/views/img/currencies/';
-        $PATH = 'modules/apirone/views/img/currencies/';
-        return '<img src="'.$PATH.$icon_name.'.svg" width="18" onerror="this.onerror=null;this.src=\''.$PATH.'placeholder.svg\'">';
-    }
-
     /**
      * @return array Array of networks DTO with keys of networks abbreviations.
      * Each result array item is DTO with icon, name, tooltip, address and tokens array.
@@ -390,7 +382,7 @@ class Apirone extends PaymentModule
 
             $networks_dto[$network_abbr] = $network_dto = new \stdClass();
 
-            $network_dto->icon = $this->renderCurrencyIcon($network_abbr);
+            $network_dto->icon = $this->renderCoinIcon($network_abbr);
             $network_dto->name = $name. ($has_tokens ? ' '.$this->l('Blockchain') : '');
             $network_dto->address = $address;
             $network_dto->tooltip = $this->l($address ? 'Remove address to deactivate currency.' : 'Enter valid address to activate currency.');
@@ -408,7 +400,7 @@ class Apirone extends PaymentModule
             $tokens_dto[$network_abbr] = $token_dto = new \stdClass();
 
             $token_dto->checkbox_id = 'state_'.$network_abbr;
-            $token_dto->icon = $this->renderCurrencyIcon($network_abbr);
+            $token_dto->icon = $this->renderCoinIcon($network_abbr);
             $token_dto->name = strtoupper($name);
             $token_dto->state = $address && is_array($coins) && in_array($network_abbr, $coins);
             $token_dto->tooltip = $this->l('Show/hide from currency selector');
@@ -417,7 +409,7 @@ class Apirone extends PaymentModule
                 $tokens_dto[$abbr] = $token_dto = new \stdClass();
 
                 $token_dto->checkbox_id = 'state_'.$network_abbr.'_'.$token->token;
-                $token_dto->icon = $this->renderCurrencyIcon($token->token);
+                $token_dto->icon = $this->renderCoinIcon($token->token);
                 $token_dto->name = strtoupper($token->alias);
                 $token_dto->state = $address && is_array($coins) && in_array($abbr, $coins);
                 $token_dto->tooltip = $this->l('Show/hide from currency selector');
@@ -427,7 +419,13 @@ class Apirone extends PaymentModule
         return $networks_dto;
     }
 
-    protected function renderNetworkCoins ($coins)
+    protected function renderCoinIcon($coin)
+    {
+        $this->context->smarty->assign('coin', $coin);
+        return $this->context->smarty->fetch($this->local_path.'views/templates/admin/coin_icon.tpl');
+    }
+
+    protected function renderNetworkCoins($coins)
     {
         $this->context->smarty->assign('coins', $coins);
         return $this->context->smarty->fetch($this->local_path.'views/templates/admin/token_checkboxes.tpl');
@@ -528,6 +526,110 @@ class Apirone extends PaymentModule
     }
 
     /**
+     * @param float $amount total order amount
+     * @param string $fiat fiat currency of amount specified
+     * @return array associative array of coins (as stdClass) to display in currency selector with abbr as key
+     */
+    protected function getCoins(float $amount, string $fiat): ?array
+    {
+        $coins_available = $this->getAvailableCryptos();
+        if (empty($coins_available) || !$this->settings->withFee) {
+            // no any coins or no fees to be included to payment amount
+            return $coins_available;
+        }
+        // fees will be included to payment amount
+        $account = $this->settings->account;
+        $factor = $this->settings->factor;
+        try {
+            $estimations = Utils::estimate(
+                $account,
+                $amount,
+                $fiat,
+                array_keys($coins_available),
+                true,
+                $factor,
+            );
+        } catch (\Exception $ignore) {
+            return null;
+        }
+        $coins = [];
+        foreach ($estimations as $estimation) {
+            $error = property_exists($estimation, 'err');
+            $currency = property_exists($estimation, 'currency') ? $estimation->currency : null;
+            $min = property_exists($estimation, 'min') ? $estimation->min : null;
+            $fee = property_exists($estimation, 'fee') ? $estimation->fee : null;
+
+            if ($error || !($currency && $min && ($fee || $fee == 0))) {
+                $this->log('error', 'Invalid estimation while get coins with fee', [
+                    'account' => $account,
+                    'amount' => $amount,
+                    'fiat' => $fiat,
+                    'currency' => $currency,
+                    'factor' => $factor,
+                    'result' => $estimation,
+                ]);
+                continue;
+            }
+            $abbr = $estimation->currency;
+            if (!($abbr && array_key_exists($abbr, $coins_available))) {
+                continue;
+            }
+            $coins[$abbr] = $coin = $coins_available[$abbr];
+
+            $coin->withFee = sprintf($this->l('%s %s (fee incl.)'), $amount + $fee, $fiat);
+        }
+        return $coins;
+    }
+
+    /**
+     * @param float $amount total order amount
+     * @param string $fiat fiat currency of amount specified
+     * @param string $currency coin crypto currency abbreviation
+     * @return ?\stdClass estimation in crypto currency and fee in fiat if withFee setting is set
+     */
+    protected function getEstimation(float $amount, string $fiat, string $currency): ?\stdClass
+    {
+        $account = $this->settings->account;
+        $withFee = $this->settings->withFee;
+        $factor = $this->settings->factor;
+        try {
+            $estimations = Utils::estimate(
+                $account,
+                $amount,
+                $fiat,
+                $currency,
+                $withFee,
+                $factor,
+            );
+        } catch (\Exception $e) {
+            $this->log('error', 'Fail get estimation before make invoice for '.$currency.'. Error: '.$e->getMessage());
+            return null;
+        }
+        if (empty($estimations)) {
+            $this->log('error', 'No estimation before make invoice for '.$currency);
+            return null;
+        }
+        $estimation = $estimations[0];
+
+        $error = property_exists($estimation, 'err');
+        $min = property_exists($estimation, 'min') ? $estimation->min : null;
+
+        if ($error || !$min) {
+            $this->log('error', 'Invalid estimation before make invoice', [
+                'account' => $account,
+                'amount' => $amount,
+                'fiat' => $fiat,
+                'currency' => $currency,
+                'withFee' => $withFee,
+                'factor' => $factor,
+                'result' => $estimation,
+            ]);
+            return null;
+        }
+        return $estimation;
+    }
+
+    /**
      * Return payment options available for PS 1.7+
      *
      * @param array Hook parameters
@@ -536,33 +638,18 @@ class Apirone extends PaymentModule
      */
     public function hookPaymentOptions($params)
     {
-        // TODO:
-
         if (!$this->active) {
             return;
         }
-        $coins = [];
         $cart = $params['cart'];
         $fiat = $this->getCartCurrency($cart);
         if (!$fiat) {
             return;
         }
-        foreach ($this->getAvailableCryptos() as $currency) {
-            try {
-                // TODO: replace by Utils::estimate() or getAvailableCryptos() results
-                // $amount = Utils::fiat2crypto($cart->getCartTotalPrice(), $fiat['iso_code'], $currency);
-                // $currency->amount = Utils::humanizeAmount(Utils::cur2min($amount, $currency->unitsFactor), $currency);
-                $coins[] = $currency;
-            }
-            catch(Exception $e) {
-                Logger::error($e->getMessage());
-            }
-        }
-
+        $coins = $this->getCoins($cart->getCartTotalPrice(), $fiat['iso_code']);
         if (empty($coins)) {
             return;
         }
-
         $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
         $this->context->smarty->assign(['action' => $action, 'coins' => $coins]);
 
@@ -570,7 +657,7 @@ class Apirone extends PaymentModule
         $option
             ->setCallToActionText($this->l('Pay with crypto'))
             ->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))
-            ->setForm($this->fetch('module:apirone/views/templates/hook/currencyselector.tpl'));
+            ->setForm($this->fetch('module:apirone/views/templates/hook/currencySelector.tpl'));
 
         return [$option];
     }
@@ -648,45 +735,22 @@ class Apirone extends PaymentModule
         return false;
     }
 
+    /**
+     * @return array associative array of coins (as stdClass) available for user with abbr as key
+     */
     public function getAvailableCryptos(): array
     {
-        // TODO
-
-        // Do not show payment method for invalid account
-        // TODO: replace with estimate from coins
-        // try {
-        //     Account::init($this->settings->account)->balance();
-        // }
-        // catch (Exception $e) {
-        //     $this->log('error', $this->l('Can`t get available cryptos for currency selector: ') . $e->getMessage());
-        //     return [];
-        // }
+        if (!($this->settings && $this->settings->coins)) {
+            return [];
+        }
+        $testCustomer = $this->settings->testCustomer;
+        $show_testnet = $testCustomer == '*' || $this->context->customer->email == $testCustomer;
 
         $coins = [];
-        $networks = $this->settings->networks();
-        $testCustomer = $this->settings->testCustomer;
-
-        foreach ($networks as $network) {
-            if ($network->getAddress() !== null && !$network->hasError()) {
-                if ($network->isTestnet()) {
-                    if ($testCustomer == $this->context->customer->email || $testCustomer == '*') {
-                        $coins[] = $network;
-                    }
-                }
-                else {
-                    $tokens = $network->getTokens($this->settings->currencies);
-                    if ($tokens) {
-                        $tokens = array_merge([$network], $tokens);
-                        foreach ($tokens as $token) {
-                            if ($this->settings->getMeta($token->abbr) == 'on') {
-                                $coins[] = $token;
-                            }
-                        }
-                    }
-                    else {
-                        $coins[] = $network;
-                    }
-                }
+        foreach ($this->settings->coins as $abbr) {
+            $coin = Utils::getCoin($abbr);
+            if ($show_testnet || !$coin->testnet) {
+                $coins[$abbr] = $coin;
             }
         }
         return $coins;
@@ -697,13 +761,10 @@ class Apirone extends PaymentModule
         $coin = Tools::getValue('coin');
 
         $cryptos = $this->getAvailableCryptos();
-        foreach ($cryptos as $crypto ) {
-            if($crypto->abbr == $coin) {
-                return $crypto;
-            }
+        if (!array_key_exists($coin, $cryptos)) {
+            return false;
         }
-
-        return false;
+        return $cryptos[$coin];
     }
 
     protected function getOrderInvoicesByOrderId($id)
@@ -713,7 +774,6 @@ class Apirone extends PaymentModule
         if (Validate::isLoadedObject($order)) {
             $invoices = Invoice::getByOrder($order->id_cart);
         }
-
         return $invoices;
     }
 
@@ -748,7 +808,6 @@ class Apirone extends PaymentModule
 
     private function updateSettings($settings)
     {
-        // TODO: check if props is got from JSON root
         $settings
             ->merchant($settings->merchant)
             ->timeout($settings->timeout)
@@ -756,7 +815,6 @@ class Apirone extends PaymentModule
             ->logo($settings->logo)
             ->debug($settings->debug);
 
-        // TODO: check if extra is got from JSON root
         if ($extra = $settings->extra) {
             foreach((array)$extra as $key => $val) {
                 if ($val) {
@@ -816,7 +874,6 @@ class Apirone extends PaymentModule
 
             return false;
         }
-
         return true;
     }
 
@@ -841,7 +898,6 @@ class Apirone extends PaymentModule
 
             return false;
         }
-
         return true;
     }
 
@@ -930,21 +986,12 @@ class Apirone extends PaymentModule
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_USERAGENT => 'apirone-prestashop-module',
         ));
-
         $response = curl_exec($curl);
 
-        $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        switch ($http_status){
-            case 200:
-                $tags = json_decode($response);
-                return $tags[0]->name;
-            case 400:
-            default:
-                return false;
+        if (curl_getinfo($curl, CURLINFO_HTTP_CODE) != 200){
+            return false;
         }
-
+        return json_decode($response)[0]->name;
     }
 
     public function apironePaymentProcess(Invoice $invoice)
@@ -979,7 +1026,7 @@ class Apirone extends PaymentModule
             }
 
             $order = Order::getByCartId($cart->id);
-            $invoice->setMeta('order_status', (int) $order->getCurrentState());
+            $invoice->order_status((int) $order->getCurrentState());
 
             return;
         }
@@ -1009,7 +1056,7 @@ class Apirone extends PaymentModule
                     $order->id
                 );
                 $orderHistory->add();
-                $invoice->setMeta('order_status', $new_status);
+                $invoice->order_status($new_status);
             }
         }
     }
