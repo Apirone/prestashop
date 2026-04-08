@@ -8,16 +8,9 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
     {
         $this->checkCallbackData();
 
-        Invoice::callbackHandler($this->handlerWrapper());
+        Invoice::callbackHandler($this->module->getPaymentProcessor());
+        // TODO: Api::invoices($invoice_id, $this->module->getPaymentProcessor());
         exit;
-    }
-
-    protected function handlerWrapper() {
-        $handler = function(Invoice $invoice) {
-            $this->module->apironePaymentProcess($invoice);
-        };
-
-        return $handler;
     }
 
     private function checkCallbackData()

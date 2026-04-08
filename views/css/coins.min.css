@@ -1,0 +1,86 @@
+/* TODO: do minification */
+:root {
+  --light-grey: #f1f1f1;
+  --light-blue: #D8E2F0;
+  --dark-grey: #808080FF;
+  --min-width: 25rem;
+}
+#apirone_mccp_dropdown {
+    display: flex;
+    position: relative;
+    margin-top: .5rem;
+    min-width: var(--min-width);
+}
+#apirone_mccp_dropdown button {
+    display: flex;
+    font-size: .875rem;
+    width: 100%;
+    margin: 0;
+    padding: .25rem .5rem;
+    block-size: border-box;
+    border: none;
+    outline: none;
+
+    background-color: inherit;
+    text-align: start;
+    vertical-align: middle;
+    flex-wrap: nowrap;
+    align-items: center;
+    position: relative;
+}
+#apirone_mccp_dropdown button:focus {
+    border: 1px solid var(--light-blue);
+}
+#apirone_mccp_dropdown button:hover {
+    background-color: var(--light-grey);
+}
+#apirone_mccp_dropdown > button {
+    border: 1px solid var(--dark-grey);
+    border-radius: .25rem;
+    justify-content: space-between;
+    padding: 0 .5rem 0 0;
+}
+#apirone_mccp_dropdown > button > div {
+    display: flex;
+    background-color: inherit;
+    text-align: start;
+    vertical-align: middle;
+    flex-wrap: nowrap;
+    align-items: center;
+    position: relative;
+    padding: .25rem .5rem;
+}
+#apirone_mccp_dropdown > .drop-list {
+    position: absolute;
+    z-index: 100;
+    min-width: var(--min-width);
+    margin: 0;
+    margin-top: 2.75rem;
+    padding: 0;
+    text-align: start;
+    background-color: white;
+    border: 1px solid var(--light-blue);
+    border-radius: .25rem;
+    max-height: 10rem;
+    overflow-y: auto;
+}
+#apirone_mccp_dropdown ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+#apirone_mccp_dropdown .coin-small {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.5rem;
+}
+#apirone_mccp_dropdown .coin-alias,
+#apirone_mccp_dropdown .with-fee {
+    position: relative;
+    margin-left: 1rem;
+    top: 1px;
+    text-wrap: nowrap;
+}
+#apirone_mccp_dropdown .coin-alias {
+    font-weight: bold;
+}

@@ -587,7 +587,7 @@ class Apirone extends PaymentModule
      * @param string $currency coin crypto currency abbreviation
      * @return ?\stdClass estimation in crypto currency and fee in fiat if withFee setting is set
      */
-    protected function getEstimation(float $amount, string $fiat, string $currency): ?\stdClass
+    public function getEstimation(float $amount, string $fiat, string $currency): ?\stdClass
     {
         $account = $this->settings->account;
         $withFee = $this->settings->withFee;
@@ -651,7 +651,11 @@ class Apirone extends PaymentModule
             return;
         }
         $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
-        $this->context->smarty->assign(['action' => $action, 'coins' => $coins]);
+        $this->context->smarty->assign([
+            'action' => $action,
+            'coins' => $coins,
+            'coin_first' => array_key_first($coins),
+        ]);
 
         $option = new \PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         $option
@@ -704,10 +708,9 @@ class Apirone extends PaymentModule
 
             $listItems[] = $itemInvoice;
         }
-        \Context::getContext()->smarty->assign('invoices', $listItems);
+        $this->context->smarty->assign('invoices', $listItems);
 
-        return \Context::getContext()->smarty->fetch('module:apirone/views/templates/hook/orderInvoicesDetails.tpl');
-
+        return $this->context->smarty->fetch('module:apirone/views/templates/hook/orderInvoicesDetails.tpl');
     }
 
     public function hookActionAdminControllerSetMedia(array $params)
@@ -756,15 +759,17 @@ class Apirone extends PaymentModule
         return $coins;
     }
 
-    public function getCrypto()
+    public function getCrypto($abbr)
     {
-        $coin = Tools::getValue('coin');
-
-        $cryptos = $this->getAvailableCryptos();
-        if (!array_key_exists($coin, $cryptos)) {
+        if (!$abbr) {
+            $this->log('error', 'getCrypto: no abbr');
             return false;
         }
-        return $cryptos[$coin];
+        $cryptos = $this->getAvailableCryptos();
+        if (!array_key_exists($abbr, $cryptos)) {
+            return false;
+        }
+        return $cryptos[$abbr];
     }
 
     protected function getOrderInvoicesByOrderId($id)
@@ -994,7 +999,7 @@ class Apirone extends PaymentModule
         return json_decode($response)[0]->name;
     }
 
-    public function apironePaymentProcess(Invoice $invoice)
+    protected function apironePaymentProcess(Invoice $invoice)
     {
         if (!in_array($invoice->status, ['paid', 'overpaid', 'completed'], true)) {
             return;
@@ -1059,6 +1064,13 @@ class Apirone extends PaymentModule
                 $invoice->order_status($new_status);
             }
         }
+    }
+
+    public function getPaymentProcessor() {
+        return function(Invoice $invoice) 
+        {
+            $this->apironePaymentProcess($invoice);
+        };
     }
 }
 

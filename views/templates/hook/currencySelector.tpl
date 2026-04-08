@@ -13,9 +13,10 @@
 <div class="row">
     <div class="col-xs-12 col-md-6 pl-2 ml-1 mb-2">
         <form action="{$action}" id="payment-form">
-        <link href="{$urls.base_url}modules/apirone/views/css/coins.css" rel="stylesheet">
+        <link href="{$urls.base_url}modules/apirone/views/css/coins.min.css" rel="stylesheet">
         <div id="apirone_mccp_dropdown">
-            <button type="button" value="{$coins.0->abbr}" name="coin" onclick="mccpDropdownToggle(event)" onblur="mccpDropdownBlur(event)">
+            <input type="hidden" value="{$coin_first}" name="coin">
+            <button type="button" onclick="mccpDropdownToggle(event)" onblur="mccpDropdownBlur(event)">
                 <div></div>
                 <i class="material-icons">expand_more</i>
             </button>
@@ -61,14 +62,13 @@
     function mccpDropdownSelect(event, coin) {
         event.preventDefault();
 
-        const buttonMain = $('#apirone_mccp_dropdown>button')
         const button = event.target.closest('button')
         if (button) {
             $('#apirone_mccp_dropdown>button>div').html(button.innerHTML);
-            buttonMain.val(coin);
+            $('#apirone_mccp_dropdown>input').val(coin);
         }
         mccpDropdownHide();
-        buttonMain.focus();
+        $('#apirone_mccp_dropdown>button').focus();
     }
     function mccpDropdownBlur(event) {
         if (event.relatedTarget?.closest('#apirone_mccp_dropdown button')) return;
