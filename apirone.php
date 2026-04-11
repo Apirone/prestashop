@@ -138,12 +138,7 @@ class Apirone extends PaymentModule
                     foreach ($networks as $network) {
                         $network->policy($processingFee);
                     }
-                    $errors = $this->settings->saveNetworks();
-
-                    // Check for errors
-                    foreach ($errors as $abbr => $error) {
-                        $this->context->controller->errors[] = $networks[$abbr]->name . $this->l(' has error: ') . $error;
-                    }
+                    $this->saveNetworks();
                 }
             }
 
@@ -179,13 +174,9 @@ class Apirone extends PaymentModule
                 }
                 $this->settings->coins($coins);
 
-                $errors = $this->settings->saveNetworks();
+                $this->saveNetworks();
 
-                // Check for errors
-                foreach ($errors as $abbr => $error) {
-                    $this->context->controller->errors[] = $networks[$abbr]->name . $this->l(' has error: ') . $error;
-                }
-
+                // Show success message if no errors
                 if (empty($this->context->controller->errors)) {
                     Configuration::updateValue('APIRONE_SETTINGS', $this->settings->toJsonString());
                     $message = $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Global'));
@@ -219,6 +210,22 @@ class Apirone extends PaymentModule
         $this->context->smarty->assign('releases_page', 'https://github.com/apirone/prestashop/releases');
 
         return $this->context->smarty->fetch($this->local_path.'views/templates/admin/settings.tpl');
+    }
+
+    /**
+     * Save crypto networks data and check for errors
+     */
+    protected function saveNetworks()
+    {
+        $networks = $this->settings->networks;
+
+        foreach ($this->settings->saveNetworks() as $abbr => $error) {
+            $this->context->controller->errors[] = sprintf(
+                $this->l('% has error: %'),
+                $networks[$abbr]->name,
+                $error,
+            );
+        }
     }
 
     /**
@@ -383,7 +390,7 @@ class Apirone extends PaymentModule
             $networks_dto[$network_abbr] = $network_dto = new \stdClass();
 
             $network_dto->icon = $this->renderCoinIcon($network_abbr);
-            $network_dto->name = $name. ($has_tokens ? ' '.$this->l('Blockchain') : '');
+            $network_dto->name = $has_tokens ? sprintf($this->l('%s Blockchain'), $name) : $name;
             $network_dto->address = $address;
             $network_dto->tooltip = $this->l($address ? 'Remove address to deactivate currency.' : 'Enter valid address to activate currency.');
             $network_dto->testnet = $testnet;
@@ -401,18 +408,18 @@ class Apirone extends PaymentModule
 
             $token_dto->checkbox_id = 'state_'.$network_abbr;
             $token_dto->icon = $this->renderCoinIcon($network_abbr);
-            $token_dto->name = strtoupper($name);
+            $token_dto->name = $alias = strtoupper($name);
             $token_dto->state = $address && is_array($coins) && in_array($network_abbr, $coins);
-            $token_dto->tooltip = $this->l('Show/hide from currency selector');
+            $token_dto->tooltip = sprintf($this->l('Show/hide % from currency selector'), $alias);
 
             foreach ($tokens as $abbr => $token) {
                 $tokens_dto[$abbr] = $token_dto = new \stdClass();
 
                 $token_dto->checkbox_id = 'state_'.$network_abbr.'_'.$token->token;
                 $token_dto->icon = $this->renderCoinIcon($token->token);
-                $token_dto->name = strtoupper($token->alias);
+                $token_dto->name = $alias = strtoupper($token->alias);
                 $token_dto->state = $address && is_array($coins) && in_array($abbr, $coins);
-                $token_dto->tooltip = $this->l('Show/hide from currency selector');
+                $token_dto->tooltip = sprintf($this->l('Show/hide % from currency selector'), $alias);
             }
             $network_dto->tokens = $tokens_dto;
         }
@@ -962,6 +969,19 @@ class Apirone extends PaymentModule
                 ? $db->executeS($query)
                 : $db->execute($query);
         };
+    }
+
+    public function getHash(&$cart, $salt = null)
+    {
+        if (!$cart) {
+            return;
+        }
+        return md5($salt ?: $cart->id . $cart->secure_key);
+    }
+
+    public function hashValid(&$cart, $hash, $salt = null)
+    {
+        return $hash && $hash == $this->getHash($cart, $salt);
     }
 
     public function redirectWithNotice()

@@ -6,34 +6,26 @@ class ApironeCallbackModuleFrontController extends ModuleFrontController
 {
     public function postProcess()
     {
-        $this->checkCallbackData();
-
-        Invoice::callbackHandler($this->module->getPaymentProcessor());
-        // TODO: Api::invoices($invoice_id, $this->module->getPaymentProcessor());
-        exit;
+        Invoice::callbackHandler($this->module->getPaymentProcessor(), $this->getCallbackChecker());
     }
 
-    private function checkCallbackData()
+    private function getCallbackChecker()
     {
-        $secret = Tools::getValue('id');
-        $data = Tools::file_get_contents('php://input');
-        $data = ($data) ? json_decode(Utils::sanitize($data)) : new \stdClass;
-
-        $invoice = property_exists($data, 'invoice') ? $data->invoice : null;
-        if ($invoice) {
-            $invoice = Invoice::get($invoice);
+        return function(Invoice $invoice) 
+        {
+            $key = Tools::getValue('key');
             $cart = new Cart($invoice->order);
 
-            if ($cart->id && $secret == md5($cart->id . $cart->secure_key)) {
+            if ($this->module->hashValid($cart, $key)) {
                 unset($cart);
-
                 return;
             }
-        }
-
-        $message = sprintf($this->l('Secret %s not valid for invoice %s'), $secret, $invoice ? $invoice->invoice : 'is null');
-        $this->module->log('info', $message);
-        Utils::sendJson($message, 400);
-        exit;
+            $this->module->log('info', 'Invalid key', [
+                'key' => $key,
+                'invoice' => $invoice->invoice,
+            ]);
+            Utils::sendJson('Invalid id', 403);
+            exit;
+        };
     }
 }

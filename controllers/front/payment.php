@@ -67,8 +67,8 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
                 ->estimation($estimation)
                 ->userData($userData)
                 ->lifetime($settings->timeout)
-                ->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['id' => md5($cart_id . $cart->secure_key)], true))
-                ->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => md5($cart_id . $cart->secure_key)], true))
+                ->callbackUrl($this->context->link->getModuleLink('apirone', 'callback', ['key' => $this->module->getHash($cart)], true))
+                ->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => $cart_id, 'key' => $this->module->getHash($cart, $amount_crypto)], true))
                 ->create();
 
             // TODO: is call to updateCartStatus($invoice) need to update cart history?
