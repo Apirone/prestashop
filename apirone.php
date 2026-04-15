@@ -96,6 +96,7 @@ class Apirone extends PaymentModule
     public function getContent()
     {
         $networks = $this->settings->networks;
+        $message = null;
 
         // Save settings if sent
         if (Tools::isSubmit('submitApironeSettings')) {
@@ -221,7 +222,7 @@ class Apirone extends PaymentModule
 
         foreach ($this->settings->saveNetworks() as $abbr => $error) {
             $this->context->controller->errors[] = sprintf(
-                $this->l('% has error: %'),
+                $this->l('%s has error: %s'),
                 $networks[$abbr]->name,
                 $error,
             );
@@ -410,7 +411,7 @@ class Apirone extends PaymentModule
             $token_dto->icon = $this->renderCoinIcon($network_abbr);
             $token_dto->name = $alias = strtoupper($name);
             $token_dto->state = $address && is_array($coins) && in_array($network_abbr, $coins);
-            $token_dto->tooltip = sprintf($this->l('Show/hide % from currency selector'), $alias);
+            $token_dto->tooltip = sprintf($this->l('Show/hide %s from currency selector'), $alias);
 
             foreach ($tokens as $abbr => $token) {
                 $tokens_dto[$abbr] = $token_dto = new \stdClass();
@@ -419,7 +420,7 @@ class Apirone extends PaymentModule
                 $token_dto->icon = $this->renderCoinIcon($token->token);
                 $token_dto->name = $alias = strtoupper($token->alias);
                 $token_dto->state = $address && is_array($coins) && in_array($abbr, $coins);
-                $token_dto->tooltip = sprintf($this->l('Show/hide % from currency selector'), $alias);
+                $token_dto->tooltip = sprintf($this->l('Show/hide %s from currency selector'), $alias);
             }
             $network_dto->tokens = $tokens_dto;
         }
@@ -450,11 +451,11 @@ class Apirone extends PaymentModule
                 'label' => $network_dto->name,
                 'name' => $abbr,
                 'hint' => $network_dto->tooltip,
-                'desc' => $network_dto->test_tooltip,
+                'desc' => property_exists($network_dto, 'test_tooltip') ? $network_dto->test_tooltip : null,
                 'values' => $abbr,
                 'prefix' => $network_dto->icon,
             ];
-            if ($coins = $network_dto->tokens) {
+            if (property_exists($network_dto, 'tokens') && $coins = $network_dto->tokens) {
                 $item['desc'] = $this->renderNetworkCoins($coins);
             }
             $form_data[] = $item;
@@ -675,27 +676,30 @@ class Apirone extends PaymentModule
 
     public function hookDisplayAdminOrderMain($params)
     {
-        // TODO: Invoice::getByOrder($order->id_cart) called in getOrderInvoicesByOrderId why duplicate here?
-
-        if (empty($this->getOrderInvoicesByOrderId($params['id_order']))) {
+        $order = new Order($params['id_order']);
+        if (!Validate::isLoadedObject($order)) {
             return;
         }
-
-        $order = new Order($params['id_order']);
-        $listItems = [];
         $invoices = Invoice::getByOrder($order->id_cart);
+        if (!count($invoices)) {
+            return;
+        }
+        $listItems = [];
         foreach ($invoices as $invoice) {
             $details = $invoice->details;
-            $currency = $this->settings->currency($details->currency);
-
+            if (!$details) {
+                continue;
+            }
+            $currency = $details->currency;
+            if (!$currency) {
+                continue;
+            }
             $itemInvoice = new stdClass();
             $itemInvoice->date = date($this->context->language->date_format_full, strtotime($details->created . 'Z'));
             $itemInvoice->invoice = $details->invoice;
             $itemInvoice->address = $details->address;
             $itemInvoice->addressUrl = Utils::getAddressLink($currency, $details->address);
-            // $itemInvoice->amount = Utils::humanizeAmount($details->amount, $currency) . ' ' . strtoupper($details->currency);
-            // TODO: check what in $details->amount
-            $itemInvoice->amount = $details->amount . ' ' . strtoupper($details->currency);
+            $itemInvoice->amount = Utils::humanizeAmount($details->amount, $currency) . ' ' . strtoupper($currency);
             $itemInvoice->status = $details->status;
             $itemInvoice->history = [];
 
@@ -703,16 +707,12 @@ class Apirone extends PaymentModule
                 $itemHistory = new stdClass();
                 $itemHistory->date = date($this->context->language->date_format_full, strtotime($item->date . 'Z'));
                 $itemHistory->status = $item->status;
-                if ($item->amount !== null) {
-                    // TODO: check what in $details->amount
-                    // $itemHistory->amount = Utils::humanizeAmount($item->amount, $currency);
-                    $itemHistory->amount = $item->amount;
+                if ($amount = $item->amount) {
+                    $itemHistory->amount = Utils::humanizeAmount($amount, $currency);
                     $itemHistory->txid = Utils::getTransactionLink($currency, $item->txid);
                 }
                 $itemInvoice->history[] = $itemHistory;
             }
-
-
             $listItems[] = $itemInvoice;
         }
         $this->context->smarty->assign('invoices', $listItems);
@@ -779,16 +779,6 @@ class Apirone extends PaymentModule
         return $cryptos[$abbr];
     }
 
-    protected function getOrderInvoicesByOrderId($id)
-    {
-        $invoices = [];
-        $order = new Order($id);
-        if (Validate::isLoadedObject($order)) {
-            $invoices = Invoice::getByOrder($order->id_cart);
-        }
-        return $invoices;
-    }
-
     protected function getSettings(): Settings
     {
         $json = Configuration::get('APIRONE_SETTINGS');
@@ -827,9 +817,11 @@ class Apirone extends PaymentModule
             ->logo($settings->logo)
             ->debug($settings->debug);
 
+        $networks = $settings->networks;
+
         if ($extra = $settings->extra) {
             foreach((array)$extra as $key => $val) {
-                if ($val) {
+                if ($val && !array_key_exists($key, $networks)) {
                     $settings->meta[$key] = $val;
                 }
             }
@@ -839,7 +831,7 @@ class Apirone extends PaymentModule
         }
         if (property_exists($settings, 'currencies') && !$settings->coins) {
             $coins = [];
-            foreach ($settings->networks as $network) {
+            foreach ($networks as $network) {
                 if (!$network->address) {
                     continue;
                 }
@@ -1021,69 +1013,45 @@ class Apirone extends PaymentModule
 
     protected function apironePaymentProcess(Invoice $invoice)
     {
-        if (!in_array($invoice->status, ['paid', 'overpaid', 'completed'], true)) {
+        $invoice_status = $invoice->status;
+        if (!in_array($invoice_status, ['paid', 'overpaid', 'completed'], true)) {
             return;
         }
+        $new_status = (int) Configuration::get('APIRONE_OC_PAYMENT_' . ($invoice_status == 'completed' ? 'COMPLETED' : 'ACCEPTED'));
 
         $cart = new Cart($invoice->order);
-        $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
 
         // Create order
-        if (!$cart->orderExists() && in_array($invoice->status, ['paid', 'overpaid','expired'], true)) {
-            $order_status = (int) Configuration::get('APIRONE_OC_PAYMENT_ACCEPTED');
-            try {
-                $this->validateOrder(
-                    (int) $cart->id,
-                    (int) $order_status,
-                    $cart->getOrderTotal(),
-                    $this->displayName,
-                    null,
-                    [],
-                    (int) $cart->id_currency,
-                    false,
-                    $cart->secure_key
-                );
-            }
-            catch (Exception $e) {
-                $this->log('error', 'Can\'t create an order.', [$e->getMessage()]);
-                $message = 'Can\'t create an order.';
-                Utils::sendJson($message, 400);
-            }
-
-            $order = Order::getByCartId($cart->id);
-            $invoice->order_status((int) $order->getCurrentState());
-
+        if (!$cart->orderExists()) {
+            $this->validateOrder(
+                (int) $cart->id,
+                $new_status,
+                $cart->getOrderTotal(),
+                $this->displayName,
+                null,
+                [],
+                (int) $cart->id_currency,
+                false,
+                $cart->secure_key
+            );
             return;
         }
 
         // Update
-        if ($cart->orderExists() && $invoice->status == 'completed') {
-            $order = Order::getByCartId($cart->id);
+        $order = Order::getByCartId($cart->id);
 
-            $current_status = (int) $order->getCurrentState();
-            // TODO: check meta of invoice
-            if ($invoice->order_status !== $current_status) {
-                $this->log('info', 'The invoice order status does not match the current order status. Order ref: ' . $order->reference);
-
-                return;
-            }
-            $new_status = (int) Configuration::get('APIRONE_OC_PAYMENT_COMPLETED');
-
+        $current_status = (int) $order->getCurrentState();
+        if ($new_status === $current_status || $order->hasBeenShipped() || $order->hasBeenDelivered()) {
             // Prevent duplicate state entry
-            if ($current_status !== $new_status
-                && false === (bool) $order->hasBeenShipped()
-                && false === (bool) $order->hasBeenDelivered()
-            ) {
-                $orderHistory = new OrderHistory();
-                $orderHistory->id_order = $order->id;
-                $orderHistory->changeIdOrderState(
-                    $new_status,
-                    $order->id
-                );
-                $orderHistory->add();
-                $invoice->order_status($new_status);
-            }
+            return;
         }
+        $orderHistory = new OrderHistory();
+        $orderHistory->id_order = $order->id;
+        $orderHistory->changeIdOrderState(
+            $new_status,
+            $order->id
+        );
+        $orderHistory->add();
     }
 
     public function getPaymentProcessor() {
