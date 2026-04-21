@@ -1,8 +1,8 @@
-# PrestaShop Crypto Payments
+# Apirone Crypto Payments for PrestaShop
 
 ## About
 
-PrestaShop payment module powered by [Apirone][Apirone]
+PrestaShop payment module powered by [Apirone]
 
 ## Description
 
@@ -10,15 +10,22 @@ Accept the most popular cryptocurrencies (BTC, LTC, BCH, Doge, etc.) in your sto
 
 **Key features:**
 
-* The payment is automatically forwarded from a temporarily generated crypto-address directly into your wallet (temp address associates payment with an exact order)
+* Payments are automatically forwarded from a temporarily generated crypto-address directly into your wallet (the temporary address associates the payment with an exact order).
 
-* The payment gateway has a fixed fee which does not depend on the amount of the order. Small payments are free. [https://apirone.com/pricing][Pricing]
+* The payment gateway charges either a fixed fee which does not depend on the amount of the order or a percentage fee in the amount of 1% of the transfer. Small payments are totally free of service fees. See about fee plans on [https://apirone.com](https://apirone.com)
 
-* White label processing (your online store accepts payments on the store side without redirects, iframes, advertisements, logos, etc.)
+* You do not need to complete a KYC/Documentation to start using our plugin. Just fill in settings and start your business.
+
+* White label processing (your online store accepts payments on the store side without redirects, iframes, advertisements, logo, etc.).
 
 * This plugin works well all over the world.
 
 * Tor network support.
+
+## Installation ##
+
+1. Download the build apirone.vX.X.X.zip from [Releases]
+2. ...
 
 ## How does it work?
 
@@ -28,13 +35,15 @@ The Buyer adds items into the cart and prepares the order. Using API requests, t
 
 PrestaShop 1.7.x, 8.x
 
-This module is released under the [MIT][MIT] license
+Since version 2.0.0 the plugin has been based on [Apirone SDK PHP](https://github.com/Apirone/apirone-sdk-php) that works on PHP v.7.4+. So the minimum PHP version is 7.4. PHP v.8.0+ is recommended.
+
+This module is released under the [MIT] license
 
 ## Third Party API & License Information
 
-* **API website:** [https://apirone.com][Apirone]
-* **API docs:** [https://apirone.com/docs/][Docs]
-* **Privacy policy:** [https://apirone.com/privacy-policy][Privacy]
+* **API website:** [Apirone]
+* **API docs:** [Docs]
+* **Privacy policy:** [Privacy]
 * **Support:** <support@apirone.com>
 
 ## Frequently Asked Questions
@@ -53,40 +62,15 @@ This module is released under the [MIT][MIT] license
 
 **Fee:**
 
->The plugin uses the free Rest API of the Apirone crypto payment gateway. The pricing page [https://apirone.com/pricing][Pricing]
+>The plugin uses the free Rest API of the Apirone crypto payment gateway. The pricing page [Pricing]
 
 [Pricing]: https://apirone.com/pricing
 [Apirone]: https://apirone.com
 [Docs]: https://apirone.com/docs
 [Privacy]: https://apirone.com/privacy-policy
 [MIT]: https://opensource.org/license/mit/
+[Releases]: https://github.com/Apirone/prestashop/releases
 
 ## Changelog
 
-### Version 1.0.4
-
-* Added BNB coin, USDT and USDC stable coins on Binance smart chain
-* The SDK updated to 1.2.9
-
-### Version 1.0.3
-
-* SDK updated
-* Refactoring the use of deprecated SDK methods
-* Settings storage updated
-* Added Ethereum network & tokens
-
-### Version 1.0.2
-
-* Enabled display of test networks for all (uses * as a wildcard)
-* Updated Makefile & files mode
-* Relative path bug fixed
-* Minor & misprint fixes
-* Vendor update
-
-### Version 1.0.1
-
-* Vendor update
-
-### Version 1.0.0
-
-* Plugin first version is released.
+See `CHANGELOG.md`

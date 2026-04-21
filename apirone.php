@@ -95,7 +95,6 @@ class Apirone extends PaymentModule
      */
     public function getContent()
     {
-        $networks = $this->settings->networks;
         $message = null;
 
         // Save settings if sent
@@ -133,13 +132,14 @@ class Apirone extends PaymentModule
                 if(!in_array($processingFee, ['percentage', 'fixed'])) {
                     $this->context->controller->errors[] = $this->l("'Processing fee plan' must be 'percentage' or 'fixed'");
                 }
-                else {
-                    $this->settings->processingFee($processingFee);
-
-                    foreach ($networks as $network) {
+                else try {
+                    foreach ($this->settings->networks as $network) {
                         $network->policy($processingFee);
                     }
                     $this->saveNetworks();
+                    $this->settings->processingFee($processingFee);
+                } catch (\Exception $ignore) {
+                    $this->context->controller->errors[] = $this->l('Can`t get currencies list from apirone gateway. Please, try later.');
                 }
             }
 
@@ -155,7 +155,7 @@ class Apirone extends PaymentModule
             $visible_coins = Tools::getValue('visible', []);
             if (count($values)) {
                 $coins = [];
-                foreach ($networks as $abbr => $network) {
+                foreach ($this->settings->networks as $abbr => $network) {
                     $address = array_key_exists($abbr, $values)
                         ? trim($values[$abbr])
                         : null;
@@ -374,13 +374,18 @@ class Apirone extends PaymentModule
      * Each result array item is DTO with icon, name, tooltip, address and tokens array.
      * Each token array item is DTO with icon, visibility state and tooltip.
      */
-    protected function getNetworksViewModel(): array
+    protected function getNetworksViewModel(): ?array
     {
+        try {
+            $networks = $this->settings->networks;
+        } catch (\Exception $ignore) {
+            return null;
+        }
         $coins = $this->settings->coins;
 
         $TESTNET_WARNING = $this->l(' WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`! ');
 
-        foreach ($this->settings->networks as $network) {
+        foreach ($networks as $network) {
             $network_abbr = $network->network;
             $name = $network->name;
             $address = $network->address;
@@ -445,24 +450,27 @@ class Apirone extends PaymentModule
     protected function renderCurrenciesForm()
     {
         $form_data = [];
-        foreach ($this->getNetworksViewModel() as $abbr => $network_dto) {
-            $item = [
-                'type' => 'text',
-                'label' => $network_dto->name,
-                'name' => $abbr,
-                'hint' => $network_dto->tooltip,
-                'desc' => property_exists($network_dto, 'test_tooltip') ? $network_dto->test_tooltip : null,
-                'values' => $abbr,
-                'prefix' => $network_dto->icon,
-            ];
-            if (property_exists($network_dto, 'tokens') && $coins = $network_dto->tokens) {
-                $item['desc'] = $this->renderNetworkCoins($coins);
-            }
-            $form_data[] = $item;
-        }
 
+        if ($networksViewModel = $this->getNetworksViewModel()) {
+            foreach ($networksViewModel as $abbr => $network_dto) {
+                $item = [
+                    'type' => 'text',
+                    'label' => $network_dto->name,
+                    'name' => $abbr,
+                    'hint' => $network_dto->tooltip,
+                    'desc' => property_exists($network_dto, 'test_tooltip') ? $network_dto->test_tooltip : null,
+                    'values' => $abbr,
+                    'prefix' => $network_dto->icon,
+                ];
+                if (property_exists($network_dto, 'tokens') && $coins = $network_dto->tokens) {
+                    $item['desc'] = $this->renderNetworkCoins($coins);
+                }
+                $form_data[] = $item;
+            }
+        }
         if (empty($form_data)) {
-            $this->context->controller->errors[] = 'Can`t get currencies list from apirone gateway. Please, try later.';
+            $this->context->controller->errors[] = $this->l('Can`t get currencies list from apirone gateway. Please, try later.');
+            return;
         }
         $form_fields = [
             'form' => [
@@ -526,8 +534,13 @@ class Apirone extends PaymentModule
      */
     protected function getCurrenciesFormValues()
     {
+        try {
+            $networks = $this->settings->networks;
+        } catch (\Exception $ignore) {
+            return null;
+        }
         $values = [];
-        foreach ($this->settings->networks as $abbr => $network) {
+        foreach ($networks as $abbr => $network) {
             $values[$abbr] = pSQL(Tools::getValue($abbr, $network->address));
         }
         return $values;
@@ -790,7 +803,9 @@ class Apirone extends PaymentModule
         if (!($settings->account && $settings->transferKey)) {
             return $this->createSettings();
         }
-        if (empty((array)$settings->meta) || property_exists($settings, 'currencies')) {
+        if (empty((array)$settings->meta)
+            || property_exists($settings, 'currencies') && !empty($settings->currencies)
+        ) {
             return $this->updateSettings($settings);
         }
         return $settings;
