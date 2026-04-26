@@ -22,10 +22,24 @@ Accept the most popular cryptocurrencies (BTC, LTC, BCH, Doge, etc.) in your sto
 
 * Tor network support.
 
-## Installation ##
+## Installation
 
 1. Download the build apirone.vX.X.X.zip from [Releases]
-2. ...
+2. Go to **Modules** » **Module manager** and upload a plugin file with **Upload a module** button.
+3. Click the **Configure** button.
+4. Enter your **cryptocurrency addresses** for desired cryptos.
+5. In the **Currencies** section of the plugin settings for currencies that have tokens and a valid address filled, check the check-boxes for the main currency of the network or any token.
+
+In total to make **Pay with crypto** method available to customers those minimal settings must be set:
+- Apirone plugin must not be disabled.
+- For one or more currencies a valid address must be set.
+- If a valid address is specified only for currencies with tokens, then a minimum one check-box for the main currency of the network or any token must be checked.
+
+## Upgrade
+
+1. Without deleting the old plugin version, upgrade using the same steps as in **Installation** section above.
+2. All values should be from the previous version.
+3. In the **Currencies** section of the plugin settings for currencies that have tokens and a valid address filled, check the check-boxes for the main currency of the network or any token.
 
 ## How does it work?
 
