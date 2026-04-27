@@ -1,1 +1,13 @@
+{**
+ * 2026 apirone.com
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file licensed under the MIT license 
+ * that is bundled with this package in the file LICENSE.txt.
+ * 
+ * @author    Apirone OÜ <support@apirone.com>
+ * @copyright 2026 Apirone OÜ
+ * @license   https://opensource.org/license/mit/ MIT License
+ *}
 <img src="{$module_dir}views/img/currencies/{$coin}.svg" width="18" onerror="this.onerror=null;this.src='{$module_dir}views/img/currencies/placeholder.svg'">

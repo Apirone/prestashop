@@ -2,7 +2,18 @@ classes
 controllers
 translations
 upgrade
-vendor
+
+vendor/apirone/apirone-api-php
+vendor/apirone/apirone-sdk-php/src/Model
+vendor/apirone/apirone-sdk-php/src/Service
+vendor/apirone/apirone-sdk-php/src/Invoice.php
+vendor/apirone/apirone-sdk-php/CHANGELOG.md
+vendor/apirone/apirone-sdk-php/composer.json
+vendor/apirone/apirone-sdk-php/invoice-app-updater.sh
+vendor/apirone/apirone-sdk-php/LICENSE
+vendor/apirone/apirone-sdk-php/README.md
+vendor/composer
+vendor/autoload.php
 
 views/css/back.css
 views/css/coins.min.css

@@ -39,11 +39,13 @@ do
     fi
 done
 
+cat ${SRC_PATH}/.header_stamp.txt ${SRC_PATH}/vendor/apirone/apirone-sdk-php/src/assets/script.min.js > ${DST_PATH}/views/js/script.min.js
+
 # Run php-cs-fixer
-mkdir -p tmp
-composer require -q -d tmp friendsofphp/php-cs-fixer
+mkdir -p ${ROOT_PATH}/tmp
+composer require -q -d ${ROOT_PATH}/tmp friendsofphp/php-cs-fixer
 ./tmp/vendor/bin/php-cs-fixer fix ${DST_PATH}
-rm -rf ./tmp
+rm -rf ${ROOT_PATH}/tmp
 
 rm -f "${ARC_PATH}"
 cd "${BUILD_PATH}"
