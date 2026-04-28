@@ -3,7 +3,6 @@
 
 tools
 vendor
-logo.svg
 views/img
 views/js
 views/css/style.min.css

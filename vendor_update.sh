@@ -11,12 +11,11 @@ fi
 
 cp ./index.php ./vendor/index.php
 
-cp ./vendor/apirone/apirone-sdk-php/src/assets/img/brand.svg ./logo.svg
-
 mkdir -p ./views/img/currencies
 cp ./index.php ./views/img/index.php
 cp ./index.php ./views/img/currencies/index.php
-cp ./vendor/apirone/apirone-sdk-php/src/assets/img/currencies/* ./views/img/currencies/
+cp ./vendor/apirone/apirone-sdk-php/src/assets/img/*.svg ./views/img/
+cp ./vendor/apirone/apirone-sdk-php/src/assets/img/currencies/*.svg ./views/img/currencies/
 
 cp ./vendor/apirone/apirone-sdk-php/src/assets/style.min.css ./views/css/style.min.css
 
