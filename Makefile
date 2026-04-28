@@ -3,12 +3,8 @@
 build: ## Create apirone module artifact
 	@ /bin/bash ./build.sh
 
-init: ## Install and update vendor dependencies
-	@if [ ! -d './vendor' ]; then \
-		composer install --ignore-platform-reqs; \
-	else \
-		composer update --ignore-platform-reqs; \
-	fi
+init: ## Install or update vendor dependencies
+	@ /bin/bash ./vendor_update.sh
 
 help: ## This help screen
 	@echo

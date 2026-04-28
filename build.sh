@@ -23,24 +23,6 @@ do
     cp -R ${src} ${dst}
 done
 
-paths=( $(grep -v '#' ${SRC_PATH}/build.map) )
-
-src=""
-for val in ${paths[@]}
-do
-    if [[ $src == "" ]]; then
-        src=${SRC_PATH}/${val}
-    else
-        dst=${DST_PATH}/${val}
-        mkdir -p `echo ${dst} | sed s/\\\/[^\\\/]*$//`
-        cp -R ${src} ${dst}
-
-        src=""
-    fi
-done
-
-cat ${SRC_PATH}/.header_stamp.txt ${SRC_PATH}/vendor/apirone/apirone-sdk-php/src/assets/script.min.js > ${DST_PATH}/views/js/script.min.js
-
 # Run php-cs-fixer
 mkdir -p ${ROOT_PATH}/tmp
 composer require -q -d ${ROOT_PATH}/tmp friendsofphp/php-cs-fixer

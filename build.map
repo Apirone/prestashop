@@ -1,9 +1,0 @@
-vendor/apirone/apirone-sdk-php/src/assets/img/currencies views/img/currencies
-vendor/apirone/apirone-sdk-php/src/assets/style.min.css views/css/style.min.css
-
-vendor/apirone/apirone-sdk-php/src/assets/img/brand.svg logo.svg
-
-index.php vendor/index.php
-index.php views/img/index.php
-index.php views/img/currencies/index.php
-index.php views/js/index.php
