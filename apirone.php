@@ -138,7 +138,8 @@ class Apirone extends PaymentModule
                     }
                     $this->saveNetworks();
                     $this->settings->processingFee($processingFee);
-                } catch (\Exception $ignore) {
+                }
+                catch (\Exception $ignore) {
                     $this->context->controller->errors[] = $this->l('Can`t get currencies list from apirone gateway. Please, try later.');
                 }
             }
@@ -378,7 +379,8 @@ class Apirone extends PaymentModule
     {
         try {
             $networks = $this->settings->networks;
-        } catch (\Exception $ignore) {
+        }
+        catch (\Exception $ignore) {
             return null;
         }
         $coins = $this->settings->coins;
@@ -536,7 +538,8 @@ class Apirone extends PaymentModule
     {
         try {
             $networks = $this->settings->networks;
-        } catch (\Exception $ignore) {
+        }
+        catch (\Exception $ignore) {
             return null;
         }
         $values = [];
@@ -570,7 +573,8 @@ class Apirone extends PaymentModule
                 true,
                 $factor,
             );
-        } catch (\Exception $ignore) {
+        }
+        catch (\Exception $ignore) {
             return null;
         }
         $coins = [];
@@ -622,7 +626,8 @@ class Apirone extends PaymentModule
                 $withFee,
                 $factor,
             );
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             $this->log('error', 'Fail get estimation before make invoice for '.$currency.'. Error: '.$e->getMessage());
             return null;
         }
@@ -803,12 +808,11 @@ class Apirone extends PaymentModule
         if (!($settings->account && $settings->transferKey)) {
             return $this->createSettings();
         }
-        if (empty((array)$settings->meta)
-            || property_exists($settings, 'currencies') && !empty($settings->currencies)
-        ) {
-            return $this->updateSettings($settings);
+        if ($settings->timeout && $settings->factor && $settings->processingFee) {
+            return $settings;
         }
-        return $settings;
+        $old_settings = json_decode($json);
+        return $this->updateSettings($old_settings);
     }
 
     private function createSettings()
@@ -823,28 +827,60 @@ class Apirone extends PaymentModule
         return $settings;
     }
 
-    private function updateSettings($settings)
+    private function getValueFromObjOrArray(&$obj, $key)
     {
-        $settings
-            ->merchant($settings->merchant)
-            ->timeout($settings->timeout)
-            ->factor($settings->factor)
-            ->logo($settings->logo)
-            ->debug($settings->debug);
+        if (empty($obj)) {
+            return;
+        }
+        if (is_object($obj) && property_exists($obj, $key)) {
+            return $obj->{$key};
+        }
+        if (is_array($obj) && array_key_exists($key, $obj)
+        ) {
+            return $obj[$key];
+        }
+    }
 
-        $networks = $settings->networks;
-
-        if ($extra = $settings->extra) {
-            foreach((array)$extra as $key => $val) {
-                if ($val && !array_key_exists($key, $networks)) {
-                    $settings->meta[$key] = $val;
-                }
+    private function getValueFromOldSettings(&$old_settings, $key, $default = null)
+    {
+        if ($value = $this->getValueFromObjOrArray($old_settings, $key)) {
+            return $value;
+        }
+        if ($extra = $this->getValueFromObjOrArray($old_settings, 'extra')) {
+            if ($value = $this->getValueFromObjOrArray($extra, $key)) {
+                return $value;
             }
         }
-        if (!$settings->processingFee) {
-            $settings->processingFee('percentage');
+        if ($meta = $this->getValueFromObjOrArray($old_settings, 'meta')) {
+            if ($value = $this->getValueFromObjOrArray($meta, $key)) {
+                return $value;
+            }
         }
-        if (property_exists($settings, 'currencies') && !$settings->coins) {
+        return $default;
+    }
+
+    private function updateSettings(&$old_settings)
+    {
+        $settings = Settings::fromExistingAccount($this->getValueFromObjOrArray($old_settings, 'account'), $this->getValueFromObjOrArray($old_settings, 'transfer-key'));
+
+        $settings->merchant($this->getValueFromOldSettings($old_settings, 'merchant'));
+        $settings->testCustomer($this->getValueFromOldSettings($old_settings, 'testCustomer'));
+        $settings->timeout($this->getValueFromOldSettings($old_settings, 'timeout', 1800));
+        $settings->processingFee($this->getValueFromOldSettings($old_settings, 'processingFee', 'percentage'));
+        $settings->factor($this->getValueFromOldSettings($old_settings, 'factor', 1));
+        $settings->withFee($this->getValueFromOldSettings($old_settings, 'withFee'));
+        $settings->logo($this->getValueFromOldSettings($old_settings, 'logo'));
+        $settings->debug($this->getValueFromOldSettings($old_settings, 'debug'));
+
+        $coins = $this->getValueFromOldSettings($old_settings, 'coins');
+        if (!is_array($coins)) {
+            try {
+                $networks = $settings->networks;
+            }
+            catch (\Exception $e) {
+                $this->log('error', 'Fail get networks settings. Error: '.$e->getMessage());
+                return $settings;
+            }
             $coins = [];
             foreach ($networks as $network) {
                 if (!$network->address) {
@@ -862,8 +898,9 @@ class Apirone extends PaymentModule
                     $coins[] = $token->abbr;
                 }
             }
-            $settings->coins($coins);
         }
+        $settings->coins($coins);
+
         Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
         return $settings;
     }
