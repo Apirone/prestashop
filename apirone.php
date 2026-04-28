@@ -808,7 +808,7 @@ class Apirone extends PaymentModule
         if (!($settings->account && $settings->transferKey)) {
             return $this->createSettings();
         }
-        if ($settings->timeout && $settings->factor && $settings->processingFee) {
+        if ($settings->timeout && $settings->factor && $settings->processingFee && $settings->coins) {
             return $settings;
         }
         $old_settings = json_decode($json);
