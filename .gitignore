@@ -3,6 +3,8 @@
 
 tools
 vendor
-apirone
-apirone*.zip
+views/img
+views/js
+views/css/style.min.css
 build
+apirone*.zip
