@@ -1,7 +1,7 @@
 .php-cs-fixer.cache
 .vscode
 
-tools
+tmp
 vendor
 views/img
 views/js
