@@ -139,8 +139,8 @@ class Apirone extends PaymentModule
                     $this->saveNetworks();
                     $this->settings->processingFee($processingFee);
                 }
-                catch (\Exception $ignore) {
-                    $this->context->controller->errors[] = $this->l('Can`t get currencies list from apirone gateway. Please, try later.');
+                catch (\Exception $e) {
+                    $this->context->controller->errors[] = sprintf($this->l('Can`t get currencies list from apirone gateway. Please, try later. %s'), $e->getMessage());
                 }
             }
 
@@ -375,13 +375,13 @@ class Apirone extends PaymentModule
      * Each result array item is DTO with icon, name, tooltip, address and tokens array.
      * Each token array item is DTO with icon, visibility state and tooltip.
      */
-    protected function getNetworksViewModel(): ?array
+    protected function getNetworksViewModel()
     {
         try {
             $networks = $this->settings->networks;
         }
-        catch (\Exception $ignore) {
-            return null;
+        catch (\Exception $e) {
+            return $e->getMessage();
         }
         $coins = $this->settings->coins;
 
@@ -453,26 +453,29 @@ class Apirone extends PaymentModule
     {
         $form_data = [];
 
-        if ($networksViewModel = $this->getNetworksViewModel()) {
-            foreach ($networksViewModel as $abbr => $network_dto) {
-                $item = [
-                    'type' => 'text',
-                    'label' => $network_dto->name,
-                    'name' => $abbr,
-                    'hint' => $network_dto->tooltip,
-                    'desc' => property_exists($network_dto, 'test_tooltip') ? $network_dto->test_tooltip : null,
-                    'values' => $abbr,
-                    'prefix' => $network_dto->icon,
-                ];
-                if (property_exists($network_dto, 'tokens') && $coins = $network_dto->tokens) {
-                    $item['desc'] = $this->renderNetworkCoins($coins);
-                }
-                $form_data[] = $item;
-            }
-        }
-        if (empty($form_data)) {
+        $networksViewModel = $this->getNetworksViewModel();
+        if (empty($networksViewModel)) {
             $this->context->controller->errors[] = $this->l('Can`t get currencies list from apirone gateway. Please, try later.');
             return;
+        }
+        if (!is_array($networksViewModel)) {
+            $this->context->controller->errors[] = sprintf($this->l('Can`t get currencies list from apirone gateway. %s'), $networksViewModel);
+            return;
+        }
+        foreach ($networksViewModel as $abbr => $network_dto) {
+            $item = [
+                'type' => 'text',
+                'label' => $network_dto->name,
+                'name' => $abbr,
+                'hint' => $network_dto->tooltip,
+                'desc' => property_exists($network_dto, 'test_tooltip') ? $network_dto->test_tooltip : null,
+                'values' => $abbr,
+                'prefix' => $network_dto->icon,
+            ];
+            if (property_exists($network_dto, 'tokens') && $coins = $network_dto->tokens) {
+                $item['desc'] = $this->renderNetworkCoins($coins);
+            }
+            $form_data[] = $item;
         }
         $form_fields = [
             'form' => [
