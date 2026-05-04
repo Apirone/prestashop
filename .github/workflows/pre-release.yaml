@@ -13,16 +13,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install composer dependencies
-        run: composer update --no-dev --prefer-dist
-
       - name: Get file version
         run: |
           echo "VERSION=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
       - name: Build pre-release artifacts
         run: |
-          make TAG="${{ env.VERSION }}"
+          make init
+          make
 
       - name: Update pre-release
         uses: andelf/nightly-release@main

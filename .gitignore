@@ -3,5 +3,8 @@
 
 tmp
 vendor
-apirone
+views/img
+views/js
+views/css/style.min.css
+build
 apirone*.zip
