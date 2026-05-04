@@ -23,6 +23,8 @@ do
     cp -R ${src} ${dst}
 done
 
+rm ${DST_PATH}/views/css/coins.css
+
 # Run php-cs-fixer
 mkdir -p ${ROOT_PATH}/tmp
 composer require -q -d ${ROOT_PATH}/tmp friendsofphp/php-cs-fixer
