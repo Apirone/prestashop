@@ -110,8 +110,8 @@ class Apirone extends PaymentModule
 
             // Validate timeout
             $timeout = intval($values['timeout']);
-            if ($timeout < 0) {
-                $this->context->controller->errors[] = $this->l("'Payment timeout' must be a non-negative integer number");
+            if ($timeout < 60 || $timeout > 86400) {
+                $this->context->controller->errors[] = $this->l("'Payment timeout' must be an integer from 60 (one minute) to 86400 (24 hours)");
             }
             else {
                 $this->settings->timeout($timeout);
@@ -846,18 +846,18 @@ class Apirone extends PaymentModule
 
     private function getValueFromOldSettings(&$old_settings, $key, $default = null)
     {
-        if ($value = $this->getValueFromObjOrArray($old_settings, $key)) {
-            return $value;
+        if ($meta = $this->getValueFromObjOrArray($old_settings, 'meta')) {
+            if ($value = $this->getValueFromObjOrArray($meta, $key)) {
+                return $value;
+            }
         }
         if ($extra = $this->getValueFromObjOrArray($old_settings, 'extra')) {
             if ($value = $this->getValueFromObjOrArray($extra, $key)) {
                 return $value;
             }
         }
-        if ($meta = $this->getValueFromObjOrArray($old_settings, 'meta')) {
-            if ($value = $this->getValueFromObjOrArray($meta, $key)) {
-                return $value;
-            }
+        if ($value = $this->getValueFromObjOrArray($old_settings, $key)) {
+            return $value;
         }
         return $default;
     }

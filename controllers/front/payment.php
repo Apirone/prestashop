@@ -29,24 +29,26 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
 
         // Show an apirone invoice
         $cart_id = $cart->id;
+        $amount_fiat = $cart->getOrderTotal();
+        $currency_fiat = $this->context->currency->iso_code;
+        $price_fiat = $amount_fiat.' '.strtoupper($currency_fiat);
 
-        // Check if invoice exist, not expired & has same crypto
+        // Check if invoice exist, not expired & has same crypto & has same fiat price (amount and currency)
         $cart_invoices = Invoice::getByOrder($cart_id);
         if (count($cart_invoices)) {
             $invoice = $cart_invoices[0];
             // Update existing invoice status
             $invoice->update(30);
-            // TODO: is call to updateCartStatus($invoice) need to update cart history?
-            if ($invoice->status !== 'expired' && $invoice->details->currency == $currency_crypto) {
-                // Show existing invoice when page is loaded or reloaded & status != expired & the same crypto currency
+            if ($invoice->status !== 'expired'
+                && $invoice->details->currency == $currency_crypto
+                && $invoice->details->userData->price == $price_fiat
+            ) {
+                // Show existing invoice when page is loaded or reloaded & status != expired & the same crypto currency & the same fiat price
                 $this->showInvoice($invoice->invoice);
             }
         }
 
         // Create new invoice
-        $currency_fiat = $this->context->currency->iso_code;
-        $amount_fiat = $cart->getOrderTotal();
-
         $estimation = $this->module->getEstimation($amount_fiat, $currency_fiat, $currency_crypto);
         if (!$estimation) {
             $this->backToCart();
@@ -58,7 +60,7 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
         $userData = UserData::init()
             ->merchant($settings->merchant ?: Configuration::get('PS_SHOP_NAME'))
             ->url($this->context->shop->getBaseURL())
-            ->price($amount_fiat.' '.strtoupper($currency_fiat));
+            ->price($price_fiat);
 
         try {
             $invoice = Invoice::init($settings->account, $currency_crypto)
@@ -71,7 +73,6 @@ class ApironePaymentModuleFrontController extends ModuleFrontController
                 ->linkback($this->context->link->getModuleLink('apirone', 'linkback', ['id' => $cart_id, 'key' => $this->module->getHash($cart, $amount_crypto)], true))
                 ->create();
 
-            // TODO: is call to updateCartStatus($invoice) need to update cart history?
             $this->showInvoice($invoice->invoice);
         }
         catch (\Exception $e) {
