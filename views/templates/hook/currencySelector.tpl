@@ -23,13 +23,19 @@
             <div class="drop-list" style="display:none"><ul>
                 {foreach $coins as $coin}
                 <li><button type="button" onclick="mccpDropdownSelect(event, '{$coin->abbr}')" onblur="mccpDropdownBlur(event)">
-                    <img width="32" height="32" src="{$urls.base_url}modules/apirone/views/img/currencies/{($coin->token) ? $coin->token : $coin->network}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
-                    {if ($coin->token)}
-                    <img width="20" class="coin-small" src="{$urls.base_url}modules/apirone/views/img/currencies/{$coin->network}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
-                    {/if}
-                    <span class="coin-alias">{$coin->alias}</span>
+                    <div class="coin-icon">
+                        <img width="32" height="32" src="{$urls.base_url}modules/apirone/views/img/currencies/{($coin->token) ? $coin->token : $coin->network}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
+                        {if ($coin->token)}
+                        <img width="20" class="coin-small" src="{$urls.base_url}modules/apirone/views/img/currencies/{$coin->network}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
+                        {/if}
+                    </div>
                     {if (property_exists($coin, 'withFee') && $coin->withFee)}
-                    <span class="with-fee">{$coin->withFee}</span>
+                    <div class="coin-text">
+                        <span class="coin-alias">{$coin->alias}</span>
+                        <span class="with-fee">{$coin->withFee}</span>
+                    </div>
+                    {else}
+                        <span class="coin-alias">{$coin->alias}</span>
                     {/if}
                 </button></li>
                 {/foreach}
