@@ -23,7 +23,7 @@ do
     cp -R ${src} ${dst}
 done
 
-rm ${DST_PATH}/views/css/coins.css
+rm ${DST_PATH}/views/css/coins.scss
 
 # Run php-cs-fixer
 mkdir -p ${ROOT_PATH}/tmp
