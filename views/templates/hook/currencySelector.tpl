@@ -11,7 +11,7 @@
  * @license   https://opensource.org/license/mit/ MIT License
  *}
 <div class="row">
-    <div class="col-xs-12 col-md-6 pl-2 ml-1 mb-2">
+    <div class="col-xs-12 col-md-12 pl-2 ml-1 mb-2">
         <form action="{$action}" id="payment-form">
         <link href="{$urls.base_url}modules/apirone/views/css/coins.min.css" rel="stylesheet">
         <div id="apirone_mccp_dropdown">
