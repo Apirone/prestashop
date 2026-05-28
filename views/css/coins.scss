@@ -1,0 +1,103 @@
+#apirone_mccp_dropdown {
+    $light-grey: #f1f1f1;
+    $light-blue: #D8E2F0;
+    $dark-grey: #808080FF;
+    $default-width: 23rem;
+
+    display: flex;
+    position: relative;
+    margin-top: .5rem;
+    width: $default-width;
+    max-width: 100%;
+
+    button {
+        display: flex;
+        font-size: .875rem;
+        width: 100%;
+        margin: 0;
+        padding: .25rem .5rem;
+        block-size: border-box;
+        border: none;
+        outline: none;
+
+        background-color: inherit;
+        text-align: start;
+        vertical-align: middle;
+        flex-wrap: nowrap;
+        align-items: center;
+
+        &:focus {
+            border: 1px solid $light-blue;
+        }
+        &:hover {
+            background-color: $light-grey;
+        }
+
+        .coin-icon {
+            position: relative;
+
+            .coin-small {
+                position: absolute;
+                top: 1.25rem;
+                left: 1.5rem;
+            }
+        }
+        .coin-text {
+            display: flex;
+            flex-grow: 1;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        span {
+            margin-left: 1rem;
+            text-wrap: nowrap;
+
+            &.coin-alias {
+                font-weight: bold;
+            }
+            &.with-fee {
+                display: flex;
+                flex-direction: row-reverse;
+                flex-grow: 1;
+            }
+        }
+    }
+    >button {
+        border: 1px solid $dark-grey;
+        border-radius: .25rem;
+        justify-content: space-between;
+        padding: 0 .5rem 0 0;
+
+        >div {
+            display: flex;
+            flex-grow: 1;
+            background-color: inherit;
+            text-align: start;
+            vertical-align: middle;
+            flex-wrap: nowrap;
+            align-items: center;
+            padding: .25rem .5rem;
+        }
+    }
+    >.drop-list {
+        position: absolute;
+        z-index: 100;
+        width: $default-width;
+        max-width: 100%;
+        margin: 0;
+        margin-top: 2.75rem;
+        padding: 0;
+        text-align: start;
+        background-color: white;
+        border: 1px solid $light-blue;
+        border-radius: .25rem;
+        max-height: 10rem;
+        overflow-y: auto;
+
+        >ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+    }
+}
