@@ -31,15 +31,15 @@
         <div>
             <h2>{l s='Plugin info' mod='apirone'}</h2>
             <p>
-                <strong>{l s='Apirone account:' mod='apirone'}</strong> {$apirone_account}<br/>
-                <strong>{l s='Plugin version:' mod='apirone'}</strong> {$plugin_version}<br/>
-                <strong>{l s='PHP version:' mod='apirone'}</strong> {$php_version}<br/>
-                <strong>{l s='PrestaShop version' mod='apirone'}</strong>: {$ps_version}<br/>
+                <strong>{l s='Apirone account:' mod='apirone'}</strong> {$apirone_account|escape:'htmlall':'UTF-8'}<br/>
+                <strong>{l s='Plugin version:' mod='apirone'}</strong> {$plugin_version|escape:'htmlall':'UTF-8'}<br/>
+                <strong>{l s='PHP version:' mod='apirone'}</strong> {$php_version|escape:'htmlall':'UTF-8'}<br/>
+                <strong>{l s='PrestaShop version' mod='apirone'}</strong>: {$ps_version|escape:'htmlall':'UTF-8'}<br/>
             </p>
             <hr>
             <p>
                 <strong>{l s='Apirone support:' mod='apirone'}</strong> <a href="mailto:support@apirone.com">support@apirone.com</a><br/>
-                <strong>{l s='Releases page' mod='apirone'}</strong>: <a href="{$releases_page}" target="_blank">{$releases_page}</a>
+                <strong>{l s='Releases page' mod='apirone'}</strong>: <a href="{$releases_page|escape}" target="_blank">{$releases_page|escape:'htmlall':'UTF-8'}</a>
             </p>
         </div>
     </div>

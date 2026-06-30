@@ -12,30 +12,30 @@
  *}
 <div class="row">
     <div class="col-xs-12 col-md-12 pl-2 ml-1 mb-2">
-        <form action="{$action}" id="payment-form">
+        <form action="{$action|escape}" id="payment-form">
         <link href="{$urls.base_url}modules/apirone/views/css/coins.min.css" rel="stylesheet">
         <div id="apirone_mccp_dropdown">
-            <input type="hidden" value="{$coin_first}" name="coin">
+            <input type="hidden" value="{$coin_first|escape}" name="coin">
             <button type="button" onclick="mccpDropdownToggle(event)" onblur="mccpDropdownBlur(event)">
                 <div></div>
                 <i class="material-icons">expand_more</i>
             </button>
             <div class="drop-list" style="display:none"><ul>
                 {foreach $coins as $coin}
-                <li><button type="button" onclick="mccpDropdownSelect(event, '{$coin->abbr}')" onblur="mccpDropdownBlur(event)">
+                <li><button type="button" onclick="mccpDropdownSelect(event, '{$coin->abbr|escape:'javascript':'UTF-8'}')" onblur="mccpDropdownBlur(event)">
                     <div class="coin-icon">
-                        <img width="32" height="32" src="{$urls.base_url}modules/apirone/views/img/currencies/{($coin->token) ? $coin->token : $coin->network}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
+                        <img width="32" height="32" src="{$urls.base_url}modules/apirone/views/img/currencies/{($coin->token) ? $coin->token : $coin->network|escape:'url'}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
                         {if ($coin->token)}
-                        <img width="20" class="coin-small" src="{$urls.base_url}modules/apirone/views/img/currencies/{$coin->network}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
+                        <img width="20" class="coin-small" src="{$urls.base_url}modules/apirone/views/img/currencies/{$coin->network|escape:'url'}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
                         {/if}
                     </div>
                     {if (property_exists($coin, 'withFee') && $coin->withFee)}
                     <div class="coin-text">
-                        <span class="coin-alias">{$coin->alias}</span>
-                        <span class="with-fee">{$coin->withFee}</span>
+                        <span class="coin-alias">{$coin->alias|escape:'htmlall':'UTF-8'}</span>
+                        <span class="with-fee">{$coin->withFee|escape:'htmlall':'UTF-8'}</span>
                     </div>
                     {else}
-                        <span class="coin-alias">{$coin->alias}</span>
+                        <span class="coin-alias">{$coin->alias|escape:'htmlall':'UTF-8'}</span>
                     {/if}
                 </button></li>
                 {/foreach}

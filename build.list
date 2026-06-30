@@ -7,8 +7,10 @@ views
 
 apirone.php
 config.xml
-index.php
 logo.png
+
+index.php
+.htaccess
 
 LICENSE.txt
 README.md

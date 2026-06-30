@@ -30,11 +30,11 @@
         <tbody>
             {foreach from=$invoices item=details}
             <tr>
-                <td data-role="date-column">{$details->date}</td>
-                <td data-role="transaction-id-column">{$details->invoice}</td>
-                <td data-role="payment-method-column"><a href="{$details->addressUrl}" target="_blank">{$details->address}</a></td>
-                <td data-role="amount-column">{$details->amount}</td>
-                <td data-role="transaction-id-column">{$details->status}</td>
+                <td data-role="date-column">{$details->date|escape:'htmlall':'UTF-8'}</td>
+                <td data-role="transaction-id-column">{$details->invoice|escape:'htmlall':'UTF-8'}</td>
+                <td data-role="payment-method-column"><a href="{$details->addressUrl|escape}" target="_blank">{$details->address|escape:'htmlall':'UTF-8'}</a></td>
+                <td data-role="amount-column">{$details->amount|escape:'htmlall':'UTF-8'}</td>
+                <td data-role="transaction-id-column">{$details->status|escape:'htmlall':'UTF-8'}</td>
                 <td class="text-right">
                     <button class="btn btn-sm btn-outline-secondary js-payment-details-btn">{l s='Details' d='Admin.Global'}</button>
                 </td>
@@ -43,10 +43,10 @@
                 <td colspan="5">
                     {foreach from=$details->history item=item}
                     <p class="mb-0">
-                        {$item->date}
-                        {$item->status}
+                        {$item->date|escape:'htmlall':'UTF-8'}
+                        {$item->status|escape:'htmlall':'UTF-8'}
                         {if property_exists($item, 'amount')}
-                            <a href="{$item->txid}">{$item->amount}</a>
+                            <a href="{$item->txid|escape}">{$item->amount|escape:'htmlall':'UTF-8'}</a>
                         {/if}
                     {/foreach}
                 </td>
