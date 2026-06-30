@@ -10,4 +10,4 @@
  * @copyright 2026 Apirone OÜ
  * @license   https://opensource.org/license/mit/ MIT License
  *}
-<img src="{$module_dir}views/img/currencies/{$coin}.svg" width="18" onerror="this.onerror=null;this.src='{$module_dir}views/img/currencies/placeholder.svg'">
+<img src="{$module_dir}views/img/currencies/{$coin|escape:'url'}.svg" width="18" onerror="this.onerror=null;this.src='{$module_dir}views/img/currencies/placeholder.svg'">

@@ -16,10 +16,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
         <script>
             window.invoice_app_config = {
-                service_url: '{$service_url}',
+                service_url: '{$service_url|escape:'javascript':'UTF-8'}',
                 invoices_ep: 'invoices?id=%s',
                 images_relative_path: '{$urls.base_url}modules/apirone/views/img',
-                {$invoice_app_config}
+                {$invoice_app_config|escape:'javascript':'UTF-8'}
             };
         </script>
         <script type="module" crossorigin src="{$urls.base_url}modules/apirone/views/js/script.min.js"></script>

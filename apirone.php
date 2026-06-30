@@ -27,12 +27,16 @@ class Apirone extends PaymentModule
         $this->need_instance = 1;
         $this->bootstrap = true;
 
+        $this->ps_versions_compliancy = array(
+            'min' => '1.7.0',
+            'max' => '9.99.99'
+        );
+
         parent::__construct();
 
         $this->displayName = $this->l('Apirone Crypto Payments');
         $this->description = $this->l('Accept Crypto with PrestaShop');
         $this->confirmUninstall = $this->l('Are you sure you want to remove the module?');
-        $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
 
         Request::userAgent('PrestaShop/' . _PS_VERSION_ . ' MCCP/' . $this->version);
 
@@ -697,6 +701,9 @@ class Apirone extends PaymentModule
 
     public function hookDisplayAdminOrderMain($params)
     {
+        if ($this->context->controller->controller_name !== 'AdminOrders') {
+            return;
+        }
         $order = new Order($params['id_order']);
         if (!Validate::isLoadedObject($order)) {
             return;
@@ -743,6 +750,9 @@ class Apirone extends PaymentModule
 
     public function hookActionAdminControllerSetMedia(array $params)
     {
+        if ($this->context->controller->controller_name !== 'AdminOrders') {
+            return;
+        }
         $action = Tools::getValue('action');
 
         if ($action === 'vieworder' || $action === 'addorder') {

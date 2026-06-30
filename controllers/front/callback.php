@@ -1,4 +1,8 @@
 <?php
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 use Apirone\SDK\Invoice;
 use Apirone\SDK\Service\Utils;
 
