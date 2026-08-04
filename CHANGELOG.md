@@ -1,3 +1,7 @@
+### Version 2.1.0
+* The SDK updated to 2.1.0
+* Support for GRAM coin
+
 ### Version 2.0.0
 
 * Now the plugin source code is based on [Apirone SDK PHP library 2.0](https://github.com/Apirone/apirone-sdk-php).
