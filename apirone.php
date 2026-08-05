@@ -229,7 +229,7 @@ class Apirone extends PaymentModule
         foreach ($this->settings->saveNetworks() as $abbr => $error) {
             $this->context->controller->errors[] = sprintf(
                 $this->l('%s has error: %s'),
-                $networks[$abbr]->network,
+                Utils::getChain($networks[$abbr]->name),
                 $error,
             );
         }
