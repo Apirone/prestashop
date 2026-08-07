@@ -24,7 +24,7 @@
                 {foreach $coins as $coin}
                 <li><button type="button" onclick="mccpDropdownSelect(event, '{$coin->abbr|escape:'javascript':'UTF-8'}')" onblur="mccpDropdownBlur(event)">
                     <div class="coin-icon">
-                        <img width="32" height="32" src="{$urls.base_url}modules/apirone/views/img/currencies/{($coin->token) ? $coin->token : $coin->network|escape:'url'}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
+                        <img width="32" height="32" src="{$urls.base_url}modules/apirone/views/img/currencies/{($coin->token) ? $coin->token : $coin->abbr|escape:'url'}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
                         {if ($coin->token)}
                         <img width="20" class="coin-small" src="{$urls.base_url}modules/apirone/views/img/currencies/{$coin->network|escape:'url'}.svg" onerror="this.onerror=null;this.src='{$urls.base_url}modules/apirone/views/img/currencies/placeholder.svg'">
                         {/if}

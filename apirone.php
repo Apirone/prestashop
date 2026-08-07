@@ -21,7 +21,7 @@ class Apirone extends PaymentModule
     public function __construct()
     {
         $this->name = 'apirone';
-        $this->version = '2.0.0';
+        $this->version = '2.1.0';
         $this->tab = 'payments_gateways';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
@@ -160,14 +160,15 @@ class Apirone extends PaymentModule
             $visible_coins = Tools::getValue('visible', []);
             if (count($values)) {
                 $coins = [];
-                foreach ($this->settings->networks as $abbr => $network) {
-                    $address = array_key_exists($abbr, $values)
-                        ? trim($values[$abbr])
+                foreach ($this->settings->networks as $network_abbr => $network) {
+                    $address = array_key_exists($network_abbr, $values)
+                        ? trim($values[$network_abbr])
                         : null;
                     $network->address($address);
                     if (!$address) {
                         continue;
                     }
+                    $abbr = $network->abbr;
                     if (!count($tokens = $network->tokens)) {
                         $coins[] = $abbr;
                         continue;
@@ -228,7 +229,7 @@ class Apirone extends PaymentModule
         foreach ($this->settings->saveNetworks() as $abbr => $error) {
             $this->context->controller->errors[] = sprintf(
                 $this->l('%s has error: %s'),
-                $networks[$abbr]->name,
+                Utils::getChain($networks[$abbr]->name),
                 $error,
             );
         }
@@ -392,8 +393,9 @@ class Apirone extends PaymentModule
         $TESTNET_WARNING = $this->l(' WARNING: Test currency. Use this currency for testing purposes only! It is displayed on the front end for `Test currency customer`! ');
 
         foreach ($networks as $network) {
+            $abbr = $network->abbr;
             $network_abbr = $network->network;
-            $name = $network->name;
+            $name = Utils::getChain($network->name);
             $address = $network->address;
             $testnet = $network->isTestnet();
             $tokens = $network->tokens;
@@ -416,12 +418,12 @@ class Apirone extends PaymentModule
             }
             $tokens_dto = [];
 
-            $tokens_dto[$network_abbr] = $token_dto = new \stdClass();
+            $tokens_dto[$abbr] = $token_dto = new \stdClass();
 
-            $token_dto->checkbox_id = 'state_'.$network_abbr;
-            $token_dto->icon = $this->renderCoinIcon($network_abbr);
-            $token_dto->name = $alias = strtoupper($name);
-            $token_dto->state = $address && is_array($coins) && in_array($network_abbr, $coins);
+            $token_dto->checkbox_id = 'state_'.$abbr;
+            $token_dto->icon = $this->renderCoinIcon($abbr);
+            $token_dto->name = $alias = strtoupper($network->name);
+            $token_dto->state = $address && is_array($coins) && in_array($abbr, $coins);
             $token_dto->tooltip = sprintf($this->l('Show/hide %s from currency selector'), $alias);
 
             foreach ($tokens as $abbr => $token) {
@@ -821,17 +823,35 @@ class Apirone extends PaymentModule
         if (!($settings->account && $settings->transferKey)) {
             return $this->createSettings();
         }
-        if ($settings->timeout && $settings->factor && $settings->processingFee && $settings->coins) {
-            return $settings;
+        if (!$settings->version || version_compare($settings->version, 2, '<')) {
+            $old_settings = json_decode($json);
+            return $this->updateSettings($old_settings);
         }
-        $old_settings = json_decode($json);
-        return $this->updateSettings($old_settings);
+        $saveMandatoryValues = false;
+
+        if (!$settings->processingFee) {
+            $settings->processingFee('percentage');
+            $saveMandatoryValues = true;
+        }
+        if (!$settings->timeout) {
+            $settings->timeout(1800);
+            $saveMandatoryValues = true;
+        }
+        if (!$settings->factor) {
+            $settings->factor(1);
+            $saveMandatoryValues = true;
+        }
+        if ($saveMandatoryValues) {
+            Configuration::updateValue('APIRONE_SETTINGS', $settings->toJsonString());
+        }
+        return $settings;
     }
 
     private function createSettings()
     {
         $settings = Settings::init()
             ->createAccount()
+            ->version($this->version)
             ->processingFee('percentage')
             ->timeout(1800)
             ->factor(1)
@@ -874,16 +894,19 @@ class Apirone extends PaymentModule
 
     private function updateSettings(&$old_settings)
     {
-        $settings = Settings::fromExistingAccount($this->getValueFromObjOrArray($old_settings, 'account'), $this->getValueFromObjOrArray($old_settings, 'transfer-key'));
-
-        $settings->merchant($this->getValueFromOldSettings($old_settings, 'merchant'));
-        $settings->testCustomer($this->getValueFromOldSettings($old_settings, 'testCustomer'));
-        $settings->timeout($this->getValueFromOldSettings($old_settings, 'timeout', 1800));
-        $settings->processingFee($this->getValueFromOldSettings($old_settings, 'processingFee', 'percentage'));
-        $settings->factor($this->getValueFromOldSettings($old_settings, 'factor', 1));
-        $settings->withFee($this->getValueFromOldSettings($old_settings, 'withFee'));
-        $settings->logo($this->getValueFromOldSettings($old_settings, 'logo'));
-        $settings->debug($this->getValueFromOldSettings($old_settings, 'debug'));
+        $settings = Settings::fromExistingAccount(
+            $this->getValueFromObjOrArray($old_settings, 'account'),
+            $this->getValueFromObjOrArray($old_settings, 'transfer-key')
+        )
+            ->version($this->version)
+            ->merchant($this->getValueFromOldSettings($old_settings, 'merchant'))
+            ->testCustomer($this->getValueFromOldSettings($old_settings, 'testCustomer'))
+            ->timeout($this->getValueFromOldSettings($old_settings, 'timeout', 1800))
+            ->processingFee($this->getValueFromOldSettings($old_settings, 'processingFee', 'percentage'))
+            ->factor($this->getValueFromOldSettings($old_settings, 'factor', 1))
+            ->withFee($this->getValueFromOldSettings($old_settings, 'withFee'))
+            ->logo($this->getValueFromOldSettings($old_settings, 'logo'))
+            ->debug($this->getValueFromOldSettings($old_settings, 'debug'));
 
         $coins = $this->getValueFromOldSettings($old_settings, 'coins');
         if (!is_array($coins)) {
