@@ -21,7 +21,7 @@ class Apirone extends PaymentModule
     public function __construct()
     {
         $this->name = 'apirone';
-        $this->version = '2.1.0';
+        $this->version = '2.2.0';
         $this->tab = 'payments_gateways';
         $this->author = 'apirone.com';
         $this->need_instance = 1;
@@ -1143,7 +1143,7 @@ class Apirone extends PaymentModule
     }
 
     public function getPaymentProcessor() {
-        return function(Invoice $invoice) 
+        return function(Invoice $invoice)
         {
             $this->apironePaymentProcess($invoice);
         };

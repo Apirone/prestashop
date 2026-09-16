@@ -2,7 +2,7 @@
 <module>
     <name>apirone</name>
     <displayName><![CDATA[Apirone Crypto Payments]]></displayName>
-    <version><![CDATA[2.1.0]]></version>
+    <version><![CDATA[2.2.0]]></version>
     <description><![CDATA[Accept Crypto with PrestaShop]]></description>
     <author><![CDATA[apirone.com]]></author>
     <tab><![CDATA[payments_gateways]]></tab>
